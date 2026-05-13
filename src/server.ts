@@ -1,3 +1,7 @@
+/**
+ * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
+ * SPDX-License-Identifier: MIT
+ */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { findProjectTool } from "./tools/find-project.js";
 import { nextActionTool } from "./tools/next-action.js";

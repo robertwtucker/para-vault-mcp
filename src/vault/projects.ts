@@ -1,3 +1,7 @@
+/**
+ * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
+ * SPDX-License-Identifier: MIT
+ */
 import { readFile } from "node:fs/promises";
 import { globby } from "globby";
 import path from "node:path";

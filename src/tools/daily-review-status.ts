@@ -1,3 +1,7 @@
+/**
+ * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
+ * SPDX-License-Identifier: MIT
+ */
 import { z } from "zod";
 import { inboxStatus } from "../vault/daily.js";
 

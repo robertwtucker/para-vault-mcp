@@ -1,3 +1,7 @@
+/**
+ * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
+ * SPDX-License-Identifier: MIT
+ */
 import { format } from "date-fns";
 import { readFile, writeFile, rename, mkdir, stat, readdir } from "node:fs/promises";
 import path from "node:path";

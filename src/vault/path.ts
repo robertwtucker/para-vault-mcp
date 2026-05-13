@@ -1,3 +1,7 @@
+/**
+ * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
+ * SPDX-License-Identifier: MIT
+ */
 import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";

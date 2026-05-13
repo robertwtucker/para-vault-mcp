@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+/**
+ * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
+ * SPDX-License-Identifier: MIT
+ */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { buildServer } from "./server.js";
 import { resolveVaultPath } from "./vault/path.js";

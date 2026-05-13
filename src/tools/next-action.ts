@@ -1,3 +1,7 @@
+/**
+ * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
+ * SPDX-License-Identifier: MIT
+ */
 import { z } from "zod";
 import { findProjects } from "../vault/projects.js";
 import { getNextAction } from "../vault/next-action.js";
