@@ -1,0 +1,36 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { findProjectTool } from "./tools/find-project.js";
+import { nextActionTool } from "./tools/next-action.js";
+import { logToTodayTool } from "./tools/log-to-today.js";
+import { dailyReviewStatusTool } from "./tools/daily-review-status.js";
+
+type ToolHandler = (args: unknown) => Promise<{ content: { type: "text"; text: string }[] }>;
+
+export interface BuiltServer {
+  mcp: McpServer;
+  listToolNames(): string[];
+  callTool(name: string, args: unknown): ReturnType<ToolHandler>;
+}
+
+export function buildServer(vaultPath: string): BuiltServer {
+  const mcp = new McpServer({ name: "para-vault-mcp", version: "0.1.0" });
+
+  const tools = [findProjectTool, nextActionTool, logToTodayTool, dailyReviewStatusTool] as const;
+  const handlerMap = new Map<string, ToolHandler>();
+
+  for (const tool of tools) {
+    const handler: ToolHandler = (args) => tool.handler(args as never, vaultPath);
+    handlerMap.set(tool.name, handler);
+    mcp.tool(tool.name, tool.description, tool.inputSchema, async (args: unknown) => handler(args));
+  }
+
+  return {
+    mcp,
+    listToolNames: () => Array.from(handlerMap.keys()),
+    callTool: (name, args) => {
+      const h = handlerMap.get(name);
+      if (!h) throw new Error(`Unknown tool: ${name}`);
+      return h(args);
+    },
+  };
+}
