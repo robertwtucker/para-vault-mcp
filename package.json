@@ -15,7 +15,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "engines": { "node": ">=20" },
-  "packageManager": "pnpm@11.0.0",
+  "packageManager": "pnpm@10.33.0",
   "license": "MIT",
   "author": "Robert Tucker <robertwtucker@gmail.com>",
   "homepage": "https://github.com/robertwtucker/para-vault-mcp",
@@ -32,8 +32,5 @@
     "tsx": "^4.16.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
   }
 }
