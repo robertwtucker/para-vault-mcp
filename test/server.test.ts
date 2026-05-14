@@ -15,6 +15,7 @@ describe("buildServer", () => {
       "daily_review_status",
       "find_project",
       "log_to_today",
+      "log_work",
       "next_action",
     ]);
   });
