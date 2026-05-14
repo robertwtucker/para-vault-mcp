@@ -5,7 +5,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { findProjectTool } from "./tools/find-project.js";
 import { nextActionTool } from "./tools/next-action.js";
-import { logToTodayTool } from "./tools/log-to-today.js";
 import { captureTool } from "./tools/capture.js";
 import { logWorkTool } from "./tools/log-work.js";
 import { addTaskTool } from "./tools/add-task.js";
@@ -22,7 +21,7 @@ export interface BuiltServer {
 export function buildServer(vaultPath: string): BuiltServer {
   const mcp = new McpServer({ name: "para-vault-mcp", version: "0.1.0" });
 
-  const tools = [findProjectTool, nextActionTool, logToTodayTool, captureTool, logWorkTool, addTaskTool, dailyReviewStatusTool] as const;
+  const tools = [findProjectTool, nextActionTool, captureTool, logWorkTool, addTaskTool, dailyReviewStatusTool] as const;
   const handlerMap = new Map<string, ToolHandler>();
 
   for (const tool of tools) {
