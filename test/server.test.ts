@@ -7,10 +7,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.resolve(__dirname, "fixtures/vault");
 
 describe("buildServer", () => {
-  it("registers all four v0.1 tools with snake_case names", () => {
+  it("registers the v0.1 tools with snake_case names", () => {
     const server = buildServer(FIXTURE);
     const tools = server.listToolNames();
     expect(tools.sort()).toEqual([
+      "capture",
       "daily_review_status",
       "find_project",
       "log_to_today",
