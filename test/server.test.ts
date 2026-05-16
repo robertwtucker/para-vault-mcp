@@ -11,7 +11,6 @@ describe("buildServer", () => {
     const server = buildServer(FIXTURE);
     const tools = server.listToolNames();
     expect(tools.sort()).toEqual([
-      "add_task",
       "capture",
       "daily_review_status",
       "find_project",
