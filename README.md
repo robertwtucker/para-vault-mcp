@@ -116,6 +116,8 @@ Tracked in full at [GitHub Issues](https://github.com/robertwtucker/para-vault-m
 
 Issues and PRs welcome. The codebase is small, fully typed, and TDD-built; running `pnpm test` should always be green on `main`. Contributors don't need to use PARA themselves — the test suite uses a fixture vault that doesn't depend on the maintainer's personal data.
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development conventions, commit style, and PR process.
+
 ## License
 
 MIT. See [LICENSE](./LICENSE).
