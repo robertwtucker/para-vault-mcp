@@ -16,7 +16,7 @@ v0.1 — five tools, MIT-licensed, validated end-to-end against a real PARA vaul
 | `next_action`         | Return the next action for a project (frontmatter `next-action`, falling back to top unchecked task).  |
 | `capture`             | Append an idea, URL, or note to today's daily-note **Captures** section.                               |
 | `log_work`            | Append a work-log entry (something done or worked on) to today's daily-note **Work Log** section.      |
-| `daily_review_status` | Report whether today's daily note exists and whether its inbox/captures appear to have been processed. |
+| `daily_review_status` | Report whether today's daily note exists, the count of unprocessed top-level `.md` files in `0-Inbox/`, and the parsed state of any `## End-of-Day Check` checkboxes.                            |
 
 All write tools auto-prefix the standard markdown list bullet (`- `) and are idempotent against double-prefixing.
 
