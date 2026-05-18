@@ -41,7 +41,28 @@ Restart Claude Code, then run `/mcp` — you should see `para-vault` listed with
 
 ### Claude Desktop
 
-Expected to work via the standard `claude_desktop_config.json` `mcpServers` block, but not yet verified by the maintainer. PRs from anyone who's exercised it are welcome.
+Build the server the same way as above (`pnpm install && pnpm run build`), then add an `mcpServers` entry to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "para-vault": {
+      "command": "node",
+      "args": ["/absolute/path/to/para-vault-mcp/dist/index.js"],
+      "env": {
+        "OBSIDIAN_VAULT_PATH": "/absolute/path/to/your/vault"
+      }
+    }
+  }
+}
+```
+
+Config file location:
+
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+Restart Claude Desktop after editing. Both `args` and `OBSIDIAN_VAULT_PATH` must be absolute paths — Claude Desktop does not expand `~` or shell variables.
 
 ### Requirements
 
