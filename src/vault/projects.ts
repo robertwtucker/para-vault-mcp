@@ -18,6 +18,7 @@ export interface ProjectSummary {
   nextAction?: string;
   due?: string;
   tags: string[];
+  frontmatterError?: string;
 }
 
 export interface FindProjectsOptions {
@@ -48,7 +49,7 @@ async function loadProject(projectsRoot: string, dir: string): Promise<ProjectSu
   } catch {
     return { name: dir, path: projectPath, hasProjectFile: false, tags: [] };
   }
-  const { data } = parseFrontmatter(raw);
+  const { data, error } = parseFrontmatter(raw);
   return {
     name: dir,
     path: projectPath,
@@ -59,6 +60,7 @@ async function loadProject(projectsRoot: string, dir: string): Promise<ProjectSu
     nextAction: typeof data["next-action"] === "string" ? data["next-action"] : undefined,
     due: typeof data.due === "string" ? data.due : undefined,
     tags: Array.isArray(data.tags) ? data.tags.filter((t): t is string => typeof t === "string") : [],
+    frontmatterError: error,
   };
 }
 

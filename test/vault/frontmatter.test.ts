@@ -22,4 +22,11 @@ describe("parseFrontmatter", () => {
     expect(result.data).toEqual({});
     expect(result.body.trim()).toBe("body");
   });
+
+  it("returns an `error` field describing malformed YAML", () => {
+    const input = `---\n[unclosed\n---\n\nbody`;
+    const result = parseFrontmatter(input);
+    expect(result.error).toBeDefined();
+    expect(result.error).toMatch(/./);
+  });
 });
