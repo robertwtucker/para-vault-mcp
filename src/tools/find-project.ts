@@ -22,8 +22,8 @@ export const findProjectTool = {
   description:
     "List active PARA projects under 1-Projects/. Optionally filter by name fragment or '#tag'. Returns name, path, status, next action, tags, due date, and area for each project.",
   inputSchema: findProjectInputSchema,
-  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, _config: VaultConfig) {
-    const projects = await findProjects(vaultPath, { query: args.query });
+  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, config: VaultConfig) {
+    const projects = await findProjects(vaultPath, config, { query: args.query });
     return {
       content: [
         { type: "text" as const, text: JSON.stringify(projects, null, 2) },

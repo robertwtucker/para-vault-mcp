@@ -7,7 +7,6 @@ import { appendToSection } from "../vault/daily.js";
 import type { VaultConfig } from "../vault/config.js";
 
 const MAX_BYTES = 8 * 1024;
-const SECTION = "Work Log";
 
 export const logWorkInputSchema = {
   content: z
@@ -25,7 +24,7 @@ export const logWorkTool = {
   description:
     "Log a work-log entry (something done or worked on) to today's daily-note Work Log section.",
   inputSchema: logWorkInputSchema,
-  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, _config: VaultConfig) {
+  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, config: VaultConfig) {
     if (Buffer.byteLength(args.content, "utf8") > MAX_BYTES) {
       return {
         content: [
@@ -37,12 +36,12 @@ export const logWorkTool = {
       };
     }
     const line = args.content.startsWith("- ") ? args.content : `- ${args.content}`;
-    await appendToSection(vaultPath, new Date(), SECTION, line);
+    await appendToSection(vaultPath, new Date(), config.workLogSection, line, config);
     return {
       content: [
         {
           type: "text" as const,
-          text: `Logged to ## ${SECTION} in today's daily note.`,
+          text: `Logged to ## ${config.workLogSection} in today's daily note.`,
         },
       ],
     };

@@ -5,13 +5,14 @@
 import { format } from "date-fns";
 import { readFile, writeFile, rename, mkdir, stat, readdir } from "node:fs/promises";
 import path from "node:path";
+import type { VaultConfig } from "./config.js";
 
-export function dailyNotePath(vaultPath: string, date: Date): string {
-  return path.join(vaultPath, "0-Inbox/Daily", `${format(date, "yyyy-MM-dd")}.md`);
+export function dailyNotePath(vaultPath: string, date: Date, config: VaultConfig): string {
+  return path.join(vaultPath, config.dailyNotesFolder, `${format(date, "yyyy-MM-dd")}.md`);
 }
 
-export async function ensureDailyNote(vaultPath: string, date: Date): Promise<string> {
-  const file = dailyNotePath(vaultPath, date);
+export async function ensureDailyNote(vaultPath: string, date: Date, config: VaultConfig): Promise<string> {
+  const file = dailyNotePath(vaultPath, date, config);
   try {
     await stat(file);
     return file;
@@ -19,12 +20,12 @@ export async function ensureDailyNote(vaultPath: string, date: Date): Promise<st
     // does not exist
   }
   await mkdir(path.dirname(file), { recursive: true });
-  const content = await renderTemplate(vaultPath, date);
+  const content = await renderTemplate(vaultPath, date, config);
   await atomicWrite(file, content);
   return file;
 }
 
-async function renderTemplate(vaultPath: string, date: Date): Promise<string> {
+async function renderTemplate(vaultPath: string, date: Date, config: VaultConfig): Promise<string> {
   const tplPath = path.join(vaultPath, "Templates/Daily Note.md");
   const ymd = format(date, "yyyy-MM-dd");
   const dddd = format(date, "EEEE");
@@ -33,7 +34,7 @@ async function renderTemplate(vaultPath: string, date: Date): Promise<string> {
     template = await readFile(tplPath, "utf8");
   } catch {
     template =
-      `---\ntype: daily\ncreated: "${ymd}"\ntags: [daily]\n---\n\n# ${ymd} — ${dddd}\n\n## Captures\n\n## Work Log\n`;
+      `---\ntype: daily\ncreated: "${ymd}"\ntags: [daily]\n---\n\n# ${ymd} — ${dddd}\n\n## ${config.captureSection}\n\n## ${config.workLogSection}\n`;
     return template;
   }
   return template
@@ -46,8 +47,9 @@ export async function appendToSection(
   date: Date,
   section: string,
   line: string,
+  config: VaultConfig,
 ): Promise<void> {
-  const file = await ensureDailyNote(vaultPath, date);
+  const file = await ensureDailyNote(vaultPath, date, config);
   const content = await readFile(file, "utf8");
   const updated = upsertSectionAppend(content, section, line);
   await atomicWrite(file, updated);
@@ -77,18 +79,18 @@ export interface InboxStatus {
   endOfDayChecks?: { label: string; checked: boolean }[];
 }
 
-export async function inboxStatus(vaultPath: string, date: Date): Promise<InboxStatus> {
-  const file = dailyNotePath(vaultPath, date);
+export async function inboxStatus(vaultPath: string, date: Date, config: VaultConfig): Promise<InboxStatus> {
+  const file = dailyNotePath(vaultPath, date, config);
   let dailyNoteExists = false;
   let endOfDayChecks: { label: string; checked: boolean }[] | undefined;
   try {
     const content = await readFile(file, "utf8");
     dailyNoteExists = true;
-    endOfDayChecks = extractEndOfDayChecks(content);
+    endOfDayChecks = extractEndOfDayChecks(content, config.endOfDayCheckSection);
   } catch {
     // not present
   }
-  const inbox = path.join(vaultPath, "0-Inbox");
+  const inbox = path.join(vaultPath, config.inboxFolder);
   let inboxItemCount = 0;
   try {
     const entries = await readdir(inbox, { withFileTypes: true });
@@ -101,8 +103,8 @@ export async function inboxStatus(vaultPath: string, date: Date): Promise<InboxS
   return { dailyNoteExists, inboxItemCount, endOfDayChecks };
 }
 
-function extractEndOfDayChecks(content: string): { label: string; checked: boolean }[] {
-  const heading = "## End-of-Day Check";
+function extractEndOfDayChecks(content: string, sectionName: string): { label: string; checked: boolean }[] {
+  const heading = `## ${sectionName}`;
   const idx = content.indexOf(heading);
   if (idx === -1) return [];
   const tail = content.slice(idx);

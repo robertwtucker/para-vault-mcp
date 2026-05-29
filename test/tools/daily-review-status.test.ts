@@ -18,7 +18,7 @@ describe("dailyReviewStatusTool", () => {
   });
 
   it("reports dailyNoteExists=true after the note is created and includes inbox count", async () => {
-    await ensureDailyNote(vault.path, new Date());
+    await ensureDailyNote(vault.path, new Date(), DEFAULT_CONFIG);
     mkdirSync(path.join(vault.path, "0-Inbox"), { recursive: true });
     writeFileSync(path.join(vault.path, "0-Inbox/some-capture.md"), "");
     const result = await dailyReviewStatusTool.handler({}, vault.path, DEFAULT_CONFIG);
@@ -28,7 +28,7 @@ describe("dailyReviewStatusTool", () => {
   });
 
   it("includes endOfDayChecks parsed from the daily note when present", async () => {
-    await ensureDailyNote(vault.path, new Date());
+    await ensureDailyNote(vault.path, new Date(), DEFAULT_CONFIG);
     const result = await dailyReviewStatusTool.handler({}, vault.path, DEFAULT_CONFIG);
     const status = JSON.parse(result.content[0]!.text);
     expect(Array.isArray(status.endOfDayChecks)).toBe(true);

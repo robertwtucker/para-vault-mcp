@@ -15,8 +15,8 @@ export const dailyReviewStatusTool = {
   description:
     "Report whether today's daily note exists, the count of unprocessed items in 0-Inbox/, and the state of the End-of-Day Check checkboxes (if the note has them).",
   inputSchema: dailyReviewStatusInputSchema,
-  async handler(_args: z.infer<typeof inputObjectSchema>, vaultPath: string, _config: VaultConfig) {
-    const status = await inboxStatus(vaultPath, new Date());
+  async handler(_args: z.infer<typeof inputObjectSchema>, vaultPath: string, config: VaultConfig) {
+    const status = await inboxStatus(vaultPath, new Date(), config);
     return { content: [{ type: "text" as const, text: JSON.stringify(status, null, 2) }] };
   },
 };
