@@ -7,6 +7,15 @@ import { readFile, writeFile, rename, mkdir, stat, readdir } from "node:fs/promi
 import path from "node:path";
 import type { VaultConfig } from "./config.js";
 
+const fileLocks = new Map<string, Promise<unknown>>();
+
+function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
+  const prev = fileLocks.get(file) ?? Promise.resolve();
+  const next = prev.then(fn, fn);
+  fileLocks.set(file, next.catch(() => {}));
+  return next;
+}
+
 export function dailyNotePath(vaultPath: string, date: Date, config: VaultConfig): string {
   return path.join(vaultPath, config.dailyNotesFolder, `${format(date, "yyyy-MM-dd")}.md`);
 }
@@ -49,10 +58,13 @@ export async function appendToSection(
   line: string,
   config: VaultConfig,
 ): Promise<void> {
-  const file = await ensureDailyNote(vaultPath, date, config);
-  const content = await readFile(file, "utf8");
-  const updated = upsertSectionAppend(content, section, line);
-  await atomicWrite(file, updated);
+  const file = dailyNotePath(vaultPath, date, config);
+  await withFileLock(file, async () => {
+    await ensureDailyNote(vaultPath, date, config);
+    const content = await readFile(file, "utf8");
+    const updated = upsertSectionAppend(content, section, line);
+    await atomicWrite(file, updated);
+  });
 }
 
 function upsertSectionAppend(content: string, section: string, line: string): string {
