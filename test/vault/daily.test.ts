@@ -81,6 +81,25 @@ describe("appendToSection", () => {
   });
 });
 
+describe("appendToSection concurrency", () => {
+  let vault: { path: string; cleanup: () => void };
+  beforeEach(() => (vault = makeTmpVault()));
+  afterEach(() => vault.cleanup());
+
+  it("does not lose updates when many appends race", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    const N = 50;
+    const writes = Array.from({ length: N }, (_, i) =>
+      appendToSection(vault.path, date, "Captures", `- entry-${i}`, DEFAULT_CONFIG),
+    );
+    await Promise.all(writes);
+    const content = readFileSync(dailyNotePath(vault.path, date, DEFAULT_CONFIG), "utf8");
+    for (let i = 0; i < N; i++) {
+      expect(content).toContain(`entry-${i}`);
+    }
+  });
+});
+
 describe("inboxStatus", () => {
   let vault: { path: string; cleanup: () => void };
   beforeEach(() => (vault = makeTmpVault()));
