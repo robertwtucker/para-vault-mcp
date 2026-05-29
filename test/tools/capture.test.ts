@@ -38,6 +38,13 @@ describe("captureTool", () => {
     expect(result.content[0]!.text).toMatch(/too large/i);
   });
 
+  it("inserts new captures at the top of the section's bullet list", async () => {
+    await captureTool.handler({ content: "first" }, vault.path, DEFAULT_CONFIG);
+    await captureTool.handler({ content: "second" }, vault.path, DEFAULT_CONFIG);
+    const content = readFileSync(dailyNotePath(vault.path, new Date(), DEFAULT_CONFIG), "utf8");
+    expect(content.indexOf("- second")).toBeLessThan(content.indexOf("- first"));
+  });
+
   it("declares snake_case name", () => {
     expect(captureTool.name).toBe("capture");
   });

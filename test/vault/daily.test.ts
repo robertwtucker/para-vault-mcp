@@ -3,6 +3,7 @@ import {
   dailyNotePath,
   ensureDailyNote,
   appendToSection,
+  prependToSectionList,
   inboxStatus,
 } from "../../src/vault/daily.js";
 import { DEFAULT_CONFIG } from "../../src/vault/config.js";
@@ -116,5 +117,64 @@ describe("inboxStatus", () => {
     writeFileSync(path.join(vault.path, "0-Inbox/capture-2.md"), "");
     const status = await inboxStatus(vault.path, new Date("2026-05-10T12:00:00Z"), DEFAULT_CONFIG);
     expect(status.inboxItemCount).toBe(2);
+  });
+});
+
+describe("prependToSectionList", () => {
+  let vault: { path: string; cleanup: () => void };
+  beforeEach(() => (vault = makeTmpVault()));
+  afterEach(() => vault.cleanup());
+
+  it("inserts at the top of an existing bullet list under the section", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    await ensureDailyNote(vault.path, date, DEFAULT_CONFIG);
+    await appendToSection(vault.path, date, "Captures", "- first", DEFAULT_CONFIG);
+    await appendToSection(vault.path, date, "Captures", "- second", DEFAULT_CONFIG);
+    await prependToSectionList(vault.path, date, "Captures", "- newest", DEFAULT_CONFIG);
+    const content = readFileSync(dailyNotePath(vault.path, date, DEFAULT_CONFIG), "utf8");
+    const newestIdx = content.indexOf("- newest");
+    const firstIdx = content.indexOf("- first");
+    const secondIdx = content.indexOf("- second");
+    expect(newestIdx).toBeGreaterThan(-1);
+    expect(newestIdx).toBeLessThan(firstIdx);
+    expect(firstIdx).toBeLessThan(secondIdx);
+  });
+
+  it("inserts above the first subsection when subsections exist", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    const file = await ensureDailyNote(vault.path, date, DEFAULT_CONFIG);
+    const initial = readFileSync(file, "utf8").replace(
+      "## Captures",
+      "## Captures\n- existing bullet\n\n### Sub\n- sub item\n",
+    );
+    writeFileSync(file, initial);
+    await prependToSectionList(vault.path, date, "Captures", "- newest", DEFAULT_CONFIG);
+    const content = readFileSync(file, "utf8");
+    const newestIdx = content.indexOf("- newest");
+    const existingIdx = content.indexOf("- existing bullet");
+    const subHeadingIdx = content.indexOf("### Sub");
+    expect(newestIdx).toBeLessThan(subHeadingIdx);
+    expect(newestIdx).toBeLessThan(existingIdx);
+  });
+
+  it("creates the section with the bullet when the section is missing", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    await ensureDailyNote(vault.path, date, DEFAULT_CONFIG);
+    await prependToSectionList(vault.path, date, "Brand New", "- hi", DEFAULT_CONFIG);
+    const content = readFileSync(dailyNotePath(vault.path, date, DEFAULT_CONFIG), "utf8");
+    expect(content).toContain("## Brand New");
+    expect(content).toContain("- hi");
+  });
+
+  it("starts a new list at section top when the section has no bullet list yet", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    await ensureDailyNote(vault.path, date, DEFAULT_CONFIG);
+    await prependToSectionList(vault.path, date, "Captures", "- newest", DEFAULT_CONFIG);
+    const content = readFileSync(dailyNotePath(vault.path, date, DEFAULT_CONFIG), "utf8");
+    expect(content).toContain("- newest");
+    const capIdx = content.indexOf("## Captures");
+    const workIdx = content.indexOf("## Work Log");
+    const captures = content.slice(capIdx, workIdx);
+    expect(captures).toContain("- newest");
   });
 });

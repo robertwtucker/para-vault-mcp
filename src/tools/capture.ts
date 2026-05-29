@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 import { z } from "zod";
-import { appendToSection } from "../vault/daily.js";
+import { prependToSectionList } from "../vault/daily.js";
 import type { VaultConfig } from "../vault/config.js";
 
 const MAX_BYTES = 8 * 1024;
@@ -36,7 +36,7 @@ export const captureTool = {
       };
     }
     const line = args.content.startsWith("- ") ? args.content : `- ${args.content}`;
-    await appendToSection(vaultPath, new Date(), config.captureSection, line, config);
+    await prependToSectionList(vaultPath, new Date(), config.captureSection, line, config);
     return {
       content: [
         {
