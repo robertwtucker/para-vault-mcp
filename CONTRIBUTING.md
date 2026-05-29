@@ -22,6 +22,10 @@ See the [Development section in README.md](./README.md#development) for clone, i
 
 The `prebuild` hook clears `dist/` before every `tsc` run, so the compiled output never drifts.
 
+### Testing against a non-default vault
+
+The test suite parameterizes the in-tree fixture vault at `test/fixtures/vault`. To exercise the configurable-conventions code path (#2 + #9), see `test/server.config.test.ts` for the pattern: write a temporary `_system/PARA-conventions.md` and call `loadVaultConfig` before constructing the server.
+
 ## Code Conventions
 
 - **TDD.** Write the failing test first; then make it pass; then commit. For bug fixes, include a test that demonstrates the bug _before_ the fix in the same PR (and ideally the same commit).
