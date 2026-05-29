@@ -6,10 +6,12 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { buildServer } from "./server.js";
 import { resolveVaultPath } from "./vault/path.js";
+import { loadVaultConfig } from "./vault/config.js";
 
 async function main() {
   const vaultPath = resolveVaultPath();
-  const { mcp } = buildServer(vaultPath);
+  const config = await loadVaultConfig(vaultPath);
+  const { mcp } = buildServer(vaultPath, config);
   const transport = new StdioServerTransport();
   await mcp.connect(transport);
 }

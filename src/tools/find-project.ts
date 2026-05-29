@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { findProjects } from "../vault/projects.js";
+import type { VaultConfig } from "../vault/config.js";
 
 export const findProjectInputSchema = {
   query: z
@@ -21,7 +22,7 @@ export const findProjectTool = {
   description:
     "List active PARA projects under 1-Projects/. Optionally filter by name fragment or '#tag'. Returns name, path, status, next action, tags, due date, and area for each project.",
   inputSchema: findProjectInputSchema,
-  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string) {
+  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, _config: VaultConfig) {
     const projects = await findProjects(vaultPath, { query: args.query });
     return {
       content: [

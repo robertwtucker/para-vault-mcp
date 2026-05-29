@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { logWorkTool } from "../../src/tools/log-work.js";
+import { DEFAULT_CONFIG } from "../../src/vault/config.js";
 import { makeTmpVault } from "../helpers/tmp-vault.js";
 import { dailyNotePath } from "../../src/vault/daily.js";
 import { readFileSync } from "node:fs";
@@ -13,6 +14,7 @@ describe("logWorkTool", () => {
     const result = await logWorkTool.handler(
       { content: "Reviewed PRs and merged 3" },
       vault.path,
+      DEFAULT_CONFIG,
     );
     expect(result.content[0]!.text).toMatch(/Work Log/);
     const file = dailyNotePath(vault.path, new Date());
@@ -22,7 +24,7 @@ describe("logWorkTool", () => {
   });
 
   it("does not double-prefix when content already starts with '- '", async () => {
-    await logWorkTool.handler({ content: "- already a bullet" }, vault.path);
+    await logWorkTool.handler({ content: "- already a bullet" }, vault.path, DEFAULT_CONFIG);
     const file = dailyNotePath(vault.path, new Date());
     const text = readFileSync(file, "utf8");
     expect(text).toContain("- already a bullet");
@@ -31,7 +33,7 @@ describe("logWorkTool", () => {
 
   it("rejects content over 8KB", async () => {
     const huge = "x".repeat(9000);
-    const result = await logWorkTool.handler({ content: huge }, vault.path);
+    const result = await logWorkTool.handler({ content: huge }, vault.path, DEFAULT_CONFIG);
     expect(result.content[0]!.text).toMatch(/too large/i);
   });
 

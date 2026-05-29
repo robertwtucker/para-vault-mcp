@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { captureTool } from "../../src/tools/capture.js";
+import { DEFAULT_CONFIG } from "../../src/vault/config.js";
 import { makeTmpVault } from "../helpers/tmp-vault.js";
 import { dailyNotePath } from "../../src/vault/daily.js";
 import { readFileSync } from "node:fs";
@@ -13,6 +14,7 @@ describe("captureTool", () => {
     const result = await captureTool.handler(
       { content: "Saw an interesting MCP pattern today" },
       vault.path,
+      DEFAULT_CONFIG,
     );
     expect(result.content[0]?.type).toBe("text");
     expect(result.content[0]!.text).toMatch(/Captures/);
@@ -23,7 +25,7 @@ describe("captureTool", () => {
   });
 
   it("does not double-prefix when content already starts with '- '", async () => {
-    await captureTool.handler({ content: "- already a bullet" }, vault.path);
+    await captureTool.handler({ content: "- already a bullet" }, vault.path, DEFAULT_CONFIG);
     const file = dailyNotePath(vault.path, new Date());
     const text = readFileSync(file, "utf8");
     expect(text).toContain("- already a bullet");
@@ -32,7 +34,7 @@ describe("captureTool", () => {
 
   it("rejects content over 8KB to prevent runaway writes", async () => {
     const huge = "x".repeat(9000);
-    const result = await captureTool.handler({ content: huge }, vault.path);
+    const result = await captureTool.handler({ content: huge }, vault.path, DEFAULT_CONFIG);
     expect(result.content[0]!.text).toMatch(/too large/i);
   });
 

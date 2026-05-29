@@ -8,6 +8,7 @@ import { nextActionTool } from "./tools/next-action.js";
 import { captureTool } from "./tools/capture.js";
 import { logWorkTool } from "./tools/log-work.js";
 import { dailyReviewStatusTool } from "./tools/daily-review-status.js";
+import type { VaultConfig } from "./vault/config.js";
 
 type ToolHandler = (args: unknown) => Promise<{ content: { type: "text"; text: string }[] }>;
 
@@ -17,14 +18,14 @@ export interface BuiltServer {
   callTool(name: string, args: unknown): ReturnType<ToolHandler>;
 }
 
-export function buildServer(vaultPath: string): BuiltServer {
-  const mcp = new McpServer({ name: "para-vault-mcp", version: "0.1.0" });
+export function buildServer(vaultPath: string, config: VaultConfig): BuiltServer {
+  const mcp = new McpServer({ name: "para-vault-mcp", version: "0.2.0" });
 
   const tools = [findProjectTool, nextActionTool, captureTool, logWorkTool, dailyReviewStatusTool] as const;
   const handlerMap = new Map<string, ToolHandler>();
 
   for (const tool of tools) {
-    const handler: ToolHandler = (args) => tool.handler(args as never, vaultPath);
+    const handler: ToolHandler = (args) => tool.handler(args as never, vaultPath, config);
     handlerMap.set(tool.name, handler);
     mcp.tool(tool.name, tool.description, tool.inputSchema, async (args: unknown) => handler(args));
   }
