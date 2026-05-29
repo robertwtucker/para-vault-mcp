@@ -85,6 +85,79 @@ function upsertSectionAppend(content: string, section: string, line: string): st
   return `${before}\n${line}\n${tail.startsWith("\n") ? tail : `\n${tail}`}`;
 }
 
+export async function prependToSectionList(
+  vaultPath: string,
+  date: Date,
+  section: string,
+  line: string,
+  config: VaultConfig,
+): Promise<void> {
+  const file = dailyNotePath(vaultPath, date, config);
+  await withFileLock(file, async () => {
+    await ensureDailyNote(vaultPath, date, config);
+    const content = await readFile(file, "utf8");
+    const updated = upsertSectionListPrepend(content, section, line);
+    await atomicWrite(file, updated);
+  });
+}
+
+function upsertSectionListPrepend(content: string, section: string, line: string): string {
+  const heading = `## ${section}`;
+  const idx = content.indexOf(heading);
+  if (idx === -1) {
+    const sep = content.endsWith("\n") ? "" : "\n";
+    return `${content}${sep}\n${heading}\n${line}\n`;
+  }
+  const afterHeadingStart = idx + heading.length;
+  const afterHeading = content.slice(afterHeadingStart);
+  const nextHeadingMatch = afterHeading.match(/\n##\s/);
+  const sectionEnd =
+    nextHeadingMatch === null || nextHeadingMatch.index === undefined
+      ? content.length
+      : afterHeadingStart + nextHeadingMatch.index;
+  const body = content.slice(afterHeadingStart, sectionEnd);
+
+  const bodyLines = body.split("\n");
+  let firstSubsectionLineIdx = -1;
+  let firstBulletLineIdx = -1;
+  for (let i = 0; i < bodyLines.length; i++) {
+    const l = bodyLines[i]!;
+    if (/^###\s/.test(l)) {
+      firstSubsectionLineIdx = i;
+      break;
+    }
+    if (firstBulletLineIdx === -1 && /^[-*]\s/.test(l)) {
+      firstBulletLineIdx = i;
+    }
+  }
+
+  let insertLineIdx: number;
+  if (
+    firstBulletLineIdx !== -1 &&
+    (firstSubsectionLineIdx === -1 || firstBulletLineIdx < firstSubsectionLineIdx)
+  ) {
+    insertLineIdx = firstBulletLineIdx;
+  } else if (firstSubsectionLineIdx !== -1) {
+    insertLineIdx = firstSubsectionLineIdx;
+  } else {
+    insertLineIdx = 0;
+    while (insertLineIdx < bodyLines.length) {
+      const l = bodyLines[insertLineIdx]!;
+      if (l.trim() === "" || l.trimStart().startsWith("<!--")) {
+        insertLineIdx++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  const newBodyLines = [...bodyLines];
+  newBodyLines.splice(insertLineIdx, 0, line);
+  const newBody = newBodyLines.join("\n");
+
+  return content.slice(0, afterHeadingStart) + newBody + content.slice(sectionEnd);
+}
+
 export interface InboxStatus {
   dailyNoteExists: boolean;
   inboxItemCount: number;
