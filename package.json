@@ -1,11 +1,11 @@
 {
-  "name": "para-vault-mcp",
-  "version": "0.1.0",
+  "name": "@robertwtucker/para-vault-mcp",
+  "version": "0.2.0",
   "description": "MCP server exposing a PARA-method Obsidian vault as structured tools.",
   "type": "module",
   "bin": { "para-vault-mcp": "dist/index.js" },
   "main": "dist/index.js",
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
   "scripts": {
     "clean": "rm -rf dist",
     "prebuild": "pnpm run clean",
