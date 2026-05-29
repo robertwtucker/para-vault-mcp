@@ -17,7 +17,7 @@ describe("logWorkTool", () => {
       DEFAULT_CONFIG,
     );
     expect(result.content[0]!.text).toMatch(/Work Log/);
-    const file = dailyNotePath(vault.path, new Date());
+    const file = dailyNotePath(vault.path, new Date(), DEFAULT_CONFIG);
     const text = readFileSync(file, "utf8");
     const wlIdx = text.indexOf("## Work Log");
     expect(text.slice(wlIdx)).toContain("- Reviewed PRs and merged 3");
@@ -25,7 +25,7 @@ describe("logWorkTool", () => {
 
   it("does not double-prefix when content already starts with '- '", async () => {
     await logWorkTool.handler({ content: "- already a bullet" }, vault.path, DEFAULT_CONFIG);
-    const file = dailyNotePath(vault.path, new Date());
+    const file = dailyNotePath(vault.path, new Date(), DEFAULT_CONFIG);
     const text = readFileSync(file, "utf8");
     expect(text).toContain("- already a bullet");
     expect(text).not.toContain("- - already a bullet");

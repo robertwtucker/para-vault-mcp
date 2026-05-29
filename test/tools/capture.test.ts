@@ -18,7 +18,7 @@ describe("captureTool", () => {
     );
     expect(result.content[0]?.type).toBe("text");
     expect(result.content[0]!.text).toMatch(/Captures/);
-    const file = dailyNotePath(vault.path, new Date());
+    const file = dailyNotePath(vault.path, new Date(), DEFAULT_CONFIG);
     const text = readFileSync(file, "utf8");
     const capIdx = text.indexOf("## Captures");
     expect(text.slice(capIdx)).toContain("- Saw an interesting MCP pattern today");
@@ -26,7 +26,7 @@ describe("captureTool", () => {
 
   it("does not double-prefix when content already starts with '- '", async () => {
     await captureTool.handler({ content: "- already a bullet" }, vault.path, DEFAULT_CONFIG);
-    const file = dailyNotePath(vault.path, new Date());
+    const file = dailyNotePath(vault.path, new Date(), DEFAULT_CONFIG);
     const text = readFileSync(file, "utf8");
     expect(text).toContain("- already a bullet");
     expect(text).not.toContain("- - already a bullet");

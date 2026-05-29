@@ -23,8 +23,8 @@ export const nextActionTool = {
   description:
     "Get the next action for a PARA project. Reads the `next-action` frontmatter field, falling back to the first unchecked task. With no `project`, returns next actions for every project.",
   inputSchema: nextActionInputSchema,
-  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, _config: VaultConfig) {
-    const projects = await findProjects(vaultPath);
+  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, config: VaultConfig) {
+    const projects = await findProjects(vaultPath, config);
     if (args.project) {
       const match = projects.find((p) =>
         p.name.toLowerCase().includes(args.project!.toLowerCase()),

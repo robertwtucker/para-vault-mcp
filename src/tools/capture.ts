@@ -7,7 +7,6 @@ import { appendToSection } from "../vault/daily.js";
 import type { VaultConfig } from "../vault/config.js";
 
 const MAX_BYTES = 8 * 1024;
-const SECTION = "Captures";
 
 export const captureInputSchema = {
   content: z
@@ -25,7 +24,7 @@ export const captureTool = {
   description:
     "Capture an idea, URL, or quick note into today's daily-note Captures section for later processing.",
   inputSchema: captureInputSchema,
-  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, _config: VaultConfig) {
+  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, config: VaultConfig) {
     if (Buffer.byteLength(args.content, "utf8") > MAX_BYTES) {
       return {
         content: [
@@ -37,12 +36,12 @@ export const captureTool = {
       };
     }
     const line = args.content.startsWith("- ") ? args.content : `- ${args.content}`;
-    await appendToSection(vaultPath, new Date(), SECTION, line);
+    await appendToSection(vaultPath, new Date(), config.captureSection, line, config);
     return {
       content: [
         {
           type: "text" as const,
-          text: `Captured to ## ${SECTION} in today's daily note.`,
+          text: `Captured to ## ${config.captureSection} in today's daily note.`,
         },
       ],
     };

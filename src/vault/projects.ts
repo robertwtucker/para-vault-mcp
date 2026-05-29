@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import { globby } from "globby";
 import path from "node:path";
 import { parseFrontmatter } from "./frontmatter.js";
+import type { VaultConfig } from "./config.js";
 
 export interface ProjectSummary {
   name: string;
@@ -25,9 +26,10 @@ export interface FindProjectsOptions {
 
 export async function findProjects(
   vaultPath: string,
+  config: VaultConfig,
   options: FindProjectsOptions = {},
 ): Promise<ProjectSummary[]> {
-  const projectsRoot = path.join(vaultPath, "1-Projects");
+  const projectsRoot = path.join(vaultPath, config.projectsFolder);
   const dirs = await globby("*", { cwd: projectsRoot, onlyDirectories: true, dot: false });
 
   const summaries = await Promise.all(
