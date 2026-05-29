@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { appendToSection } from "../vault/daily.js";
+import type { VaultConfig } from "../vault/config.js";
 
 const MAX_BYTES = 8 * 1024;
 const SECTION = "Captures";
@@ -24,7 +25,7 @@ export const captureTool = {
   description:
     "Capture an idea, URL, or quick note into today's daily-note Captures section for later processing.",
   inputSchema: captureInputSchema,
-  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string) {
+  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, _config: VaultConfig) {
     if (Buffer.byteLength(args.content, "utf8") > MAX_BYTES) {
       return {
         content: [

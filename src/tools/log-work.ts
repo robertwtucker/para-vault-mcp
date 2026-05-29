@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { appendToSection } from "../vault/daily.js";
+import type { VaultConfig } from "../vault/config.js";
 
 const MAX_BYTES = 8 * 1024;
 const SECTION = "Work Log";
@@ -24,7 +25,7 @@ export const logWorkTool = {
   description:
     "Log a work-log entry (something done or worked on) to today's daily-note Work Log section.",
   inputSchema: logWorkInputSchema,
-  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string) {
+  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, _config: VaultConfig) {
     if (Buffer.byteLength(args.content, "utf8") > MAX_BYTES) {
       return {
         content: [

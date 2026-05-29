@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { dailyReviewStatusTool } from "../../src/tools/daily-review-status.js";
+import { DEFAULT_CONFIG } from "../../src/vault/config.js";
 import { makeTmpVault } from "../helpers/tmp-vault.js";
 import { ensureDailyNote } from "../../src/vault/daily.js";
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -11,7 +12,7 @@ describe("dailyReviewStatusTool", () => {
   afterEach(() => vault.cleanup());
 
   it("reports dailyNoteExists=false before today's note is created", async () => {
-    const result = await dailyReviewStatusTool.handler({}, vault.path);
+    const result = await dailyReviewStatusTool.handler({}, vault.path, DEFAULT_CONFIG);
     const status = JSON.parse(result.content[0]!.text);
     expect(status.dailyNoteExists).toBe(false);
   });
@@ -20,7 +21,7 @@ describe("dailyReviewStatusTool", () => {
     await ensureDailyNote(vault.path, new Date());
     mkdirSync(path.join(vault.path, "0-Inbox"), { recursive: true });
     writeFileSync(path.join(vault.path, "0-Inbox/some-capture.md"), "");
-    const result = await dailyReviewStatusTool.handler({}, vault.path);
+    const result = await dailyReviewStatusTool.handler({}, vault.path, DEFAULT_CONFIG);
     const status = JSON.parse(result.content[0]!.text);
     expect(status.dailyNoteExists).toBe(true);
     expect(status.inboxItemCount).toBe(1);
@@ -28,7 +29,7 @@ describe("dailyReviewStatusTool", () => {
 
   it("includes endOfDayChecks parsed from the daily note when present", async () => {
     await ensureDailyNote(vault.path, new Date());
-    const result = await dailyReviewStatusTool.handler({}, vault.path);
+    const result = await dailyReviewStatusTool.handler({}, vault.path, DEFAULT_CONFIG);
     const status = JSON.parse(result.content[0]!.text);
     expect(Array.isArray(status.endOfDayChecks)).toBe(true);
     expect(status.endOfDayChecks.length).toBeGreaterThan(0);

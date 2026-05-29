@@ -5,6 +5,7 @@
 import { z } from "zod";
 import { findProjects } from "../vault/projects.js";
 import { getNextAction } from "../vault/next-action.js";
+import type { VaultConfig } from "../vault/config.js";
 
 export const nextActionInputSchema = {
   project: z
@@ -22,7 +23,7 @@ export const nextActionTool = {
   description:
     "Get the next action for a PARA project. Reads the `next-action` frontmatter field, falling back to the first unchecked task. With no `project`, returns next actions for every project.",
   inputSchema: nextActionInputSchema,
-  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string) {
+  async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, _config: VaultConfig) {
     const projects = await findProjects(vaultPath);
     if (args.project) {
       const match = projects.find((p) =>
