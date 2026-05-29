@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
+import { format } from "date-fns";
 import { buildServer } from "../src/server.js";
 import { loadVaultConfig } from "../src/vault/config.js";
 import { makeTmpVault } from "./helpers/tmp-vault.js";
@@ -36,7 +37,8 @@ describe("end-to-end with non-default config", () => {
     const server = buildServer(vault.path, config);
     const result = await server.callTool("capture", { content: "Hello" });
     expect(result.content[0]!.text).toContain("Captured to ## Inbox");
-    expect(existsSync(path.join(vault.path, "Journal"))).toBe(true);
+    const ymd = format(new Date(), "yyyy-MM-dd");
+    expect(existsSync(path.join(vault.path, "Journal", `${ymd}.md`))).toBe(true);
   });
 
   it("find_project lists projects from the configured projects-folder", async () => {
