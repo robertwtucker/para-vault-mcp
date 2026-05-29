@@ -2,11 +2,11 @@
 
 An [MCP](https://modelcontextprotocol.io) server that exposes a [PARA-method](https://fortelabs.com/blog/para/) [Obsidian](https://obsidian.md) vault as structured tools — so an agent can find your active projects, surface their next actions, and write to your daily note without you copy-pasting markdown.
 
-Built first for the maintainer's own vault. Generalizable second: see [Vault expectations](#vault-expectations) for what v0.1 currently assumes, and [#2](https://github.com/robertwtucker/para-vault-mcp/issues/2) for the v0.2 plan to make it configurable.
+v0.2 stops being maintainer-shaped: section names and PARA folder paths are configurable via `_system/PARA-conventions.md`. Defaults match the maintainer's vault; vaults that diverge declare their conventions and continue to work without code changes.
 
 ## Status
 
-v0.1 — five tools, MIT-licensed, validated end-to-end against a real PARA vault. Known issues and roadmap tracked openly in [GitHub Issues](https://github.com/robertwtucker/para-vault-mcp/issues).
+v0.2 — five tools, MIT-licensed, published on npm as `@robertwtucker/para-vault-mcp`. Section names and folder paths configurable via `_system/PARA-conventions.md`; defaults preserved. Roadmap tracked openly in [GitHub Issues](https://github.com/robertwtucker/para-vault-mcp/issues).
 
 ## Tools
 
@@ -22,33 +22,28 @@ All write tools auto-prefix the standard markdown list bullet (`- `) and are ide
 
 ## Install
 
+The recommended install is via `npx` — no clone, no build.
+
 ### Claude Code
 
 ```sh
-# Clone and build
-git clone https://github.com/robertwtucker/para-vault-mcp.git
-cd para-vault-mcp
-pnpm install
-pnpm run build
-
-# Register with Claude Code (replace path with your vault)
 claude mcp add para-vault \
   -e OBSIDIAN_VAULT_PATH=/absolute/path/to/your/vault \
-  -- node $(pwd)/dist/index.js
+  -- npx -y @robertwtucker/para-vault-mcp
 ```
 
 Restart Claude Code, then run `/mcp` — you should see `para-vault` listed with all five tools.
 
 ### Claude Desktop
 
-Build the server the same way as above (`pnpm install && pnpm run build`), then add an `mcpServers` entry to `claude_desktop_config.json`:
+Add an `mcpServers` entry to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "para-vault": {
-      "command": "node",
-      "args": ["/absolute/path/to/para-vault-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@robertwtucker/para-vault-mcp"],
       "env": {
         "OBSIDIAN_VAULT_PATH": "/absolute/path/to/your/vault"
       }
@@ -62,7 +57,17 @@ Config file location:
 - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
-Restart Claude Desktop after editing. Both `args` and `OBSIDIAN_VAULT_PATH` must be absolute paths — Claude Desktop does not expand `~` or shell variables.
+Restart Claude Desktop after editing. `OBSIDIAN_VAULT_PATH` must be an absolute path — Claude Desktop does not expand `~` or shell variables.
+
+### From source (contributors)
+
+```sh
+git clone https://github.com/robertwtucker/para-vault-mcp.git
+cd para-vault-mcp
+pnpm install
+pnpm run build
+# Then point your MCP client at `node /path/to/para-vault-mcp/dist/index.js`.
+```
 
 ### Requirements
 
@@ -80,7 +85,7 @@ One required environment variable:
 
 ## Vault expectations
 
-v0.1 hardcodes the following structure. Vaults that match it work out of the box; vaults that don't will need either renames or a wait for [#2](https://github.com/robertwtucker/para-vault-mcp/issues/2).
+The defaults below match the maintainer's vault. Vaults with different folder names or section names declare their conventions in `_system/PARA-conventions.md` (see [Customizing conventions](#customizing-conventions) below).
 
 ```
 <vault root>/
@@ -113,11 +118,28 @@ tags: [...]
 
 When `next-action` is absent from frontmatter, `next_action` falls back to the first unchecked `- [ ] ...` task in the body.
 
+### Customizing conventions
+
+By default, `para-vault-mcp` assumes Robert's PARA folder layout (`0-Inbox/`, `0-Inbox/Daily/`, `1-Projects/`) and daily-note section names (`## Captures`, `## Work Log`, `## End-of-Day Check`). If your vault uses different names, create `_system/PARA-conventions.md` with frontmatter:
+
+```yaml
+---
+capture-section: Inbox
+work-log-section: Done
+end-of-day-check-section: Wrap Up
+daily-notes-folder: Journal
+inbox-folder: Capture
+projects-folder: Projects
+---
+```
+
+Any unspecified key keeps its default. Folder paths must resolve inside the vault — values that escape `OBSIDIAN_VAULT_PATH` are rejected at startup.
+
 ## Development
 
 ```sh
 pnpm install         # install dependencies (lockfile-strict)
-pnpm test            # run the full test suite (47 tests as of v0.1)
+pnpm test            # run the full test suite (63 tests as of v0.2)
 pnpm run typecheck   # tsc --noEmit
 pnpm run build       # clean + tsc; rebuilds dist/ hermetically
 pnpm run dev         # run from source via tsx (no rebuild required)
@@ -125,13 +147,11 @@ pnpm run dev         # run from source via tsx (no rebuild required)
 
 The `prebuild` lifecycle hook clears `dist/` before every `tsc` invocation, so the compiled output never drifts into a strict superset of the current source tree.
 
-## Known issues (v0.1)
+## Known limitations
 
-Tracked in full at [GitHub Issues](https://github.com/robertwtucker/para-vault-mcp/issues). Summary:
-
-- **[#1](https://github.com/robertwtucker/para-vault-mcp/issues/1)** — `parseFrontmatter` silently swallows YAML parse errors. A malformed frontmatter block (e.g., unquoted `#` characters in a value) currently returns empty data instead of surfacing the error. Workaround: quote frontmatter values that contain markdown syntax.
-- **[#2](https://github.com/robertwtucker/para-vault-mcp/issues/2)** — daily-note section names (`Captures`, `Work Log`) and PARA folder names are hardcoded. v0.2 will extract these to configuration so non-default vault structures are supported without code changes.
-- **[#3](https://github.com/robertwtucker/para-vault-mcp/issues/3)** — append-to-daily-note tools use a read-modify-write cycle protected by atomic-rename, which guards against partial-file state but not against lost updates under concurrent writers (e.g., Claude Code and Claude Desktop running against the same vault simultaneously). Single-client use is safe.
+- **Plugin-generated sections are unsupported.** Tools operate on static markdown sections. If you map a tool to a section whose contents are produced by an Obsidian plugin (`tasks`, `dataview`, fenced code blocks owned by a plugin), behavior is undefined.
+- **Config file path is hardcoded** to `_system/PARA-conventions.md`. A future release may add an env-var override.
+- **Single-process concurrency only.** Writes are serialized in-process; running multiple servers against the same vault is not protected.
 
 ## Contributing
 
