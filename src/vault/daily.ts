@@ -217,8 +217,10 @@ async function findPreviousDailyNote(
   if (dated.length === 0) return undefined;
   dated.sort((a, b) => {
     if (a.key !== b.key) return a.key < b.key ? 1 : -1;
-    // Tie-break: longer/suffixed filename wins (Weekly Review > plain daily).
-    return a.name < b.name ? 1 : a.name > b.name ? -1 : 0;
+    // Tie-break: suffixed variant (e.g. "— Weekly Review") wins over plain
+    // YYYY-MM-DD.md. Lexically the space after the date sorts before ".md",
+    // so ascending name order puts the suffixed variant first.
+    return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
   });
   return toVaultRelative(vaultPath, path.join(dailyFolder, dated[0]!.name));
 }
