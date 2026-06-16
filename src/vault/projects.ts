@@ -25,12 +25,18 @@ export interface ProjectSummary {
   frontmatterError?: string;
 }
 
+export type ProjectSortKey = "name" | "updated" | "lastReviewed" | "due";
+export type SortOrder = "asc" | "desc";
+
 export interface FindProjectsOptions {
   query?: string;
   status?: string;
   area?: string;
   staleDays?: number;
   updatedSince?: string;
+  sort?: ProjectSortKey;
+  order?: SortOrder;
+  limit?: number;
   now?: Date;
 }
 
@@ -51,7 +57,7 @@ export async function findProjects(
   const areaFilter = options.area ? normalizeArea(options.area) : undefined;
   const updatedSinceDate = parseDateString(options.updatedSince);
 
-  return summaries.filter((p) => {
+  const filtered = summaries.filter((p) => {
     if (!matchesQuery(p, options.query)) return false;
     if (statusFilter !== undefined && p.status?.toLowerCase() !== statusFilter) return false;
     if (areaFilter !== undefined && (p.area === undefined || normalizeArea(p.area) !== areaFilter)) return false;
@@ -62,6 +68,36 @@ export async function findProjects(
     }
     return true;
   });
+
+  const sorted = sortProjects(filtered, options.sort ?? "name", options.order ?? "asc");
+  return options.limit !== undefined ? sorted.slice(0, options.limit) : sorted;
+}
+
+function sortProjects(
+  projects: ProjectSummary[],
+  sortKey: ProjectSortKey,
+  order: SortOrder,
+): ProjectSummary[] {
+  const dir = order === "desc" ? -1 : 1;
+  return [...projects].sort((a, b) => {
+    const av = sortValue(a, sortKey);
+    const bv = sortValue(b, sortKey);
+    if (av === undefined && bv === undefined) return a.name.localeCompare(b.name);
+    if (av === undefined) return 1;
+    if (bv === undefined) return -1;
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function sortValue(p: ProjectSummary, key: ProjectSortKey): string | undefined {
+  switch (key) {
+    case "name": return p.name;
+    case "updated": return p.updated;
+    case "lastReviewed": return p.lastReviewed;
+    case "due": return p.due;
+  }
 }
 
 function normalizeArea(value: string): string {
