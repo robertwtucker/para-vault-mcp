@@ -216,7 +216,7 @@ async function findPreviousDailyNote(
     .filter((x) => x.key < todayKey);
   if (dated.length === 0) return undefined;
   dated.sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : 0));
-  return path.relative(vaultPath, path.join(dailyFolder, dated[0]!.name));
+  return toVaultRelative(vaultPath, path.join(dailyFolder, dated[0]!.name));
 }
 
 async function listInboxItems(vaultPath: string, config: VaultConfig): Promise<InboxItem[]> {
@@ -244,8 +244,12 @@ async function listInboxItems(vaultPath: string, config: VaultConfig): Promise<I
   valid.sort((a, b) => a.mtime - b.mtime);
   return valid.map((e) => ({
     name: e.name,
-    path: path.relative(vaultPath, e.full),
+    path: toVaultRelative(vaultPath, e.full),
   }));
+}
+
+function toVaultRelative(vaultPath: string, absPath: string): string {
+  return path.relative(vaultPath, absPath).split(path.sep).join("/");
 }
 
 function extractEndOfDayChecks(content: string, sectionName: string): { label: string; checked: boolean }[] {
