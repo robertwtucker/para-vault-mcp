@@ -167,6 +167,7 @@ export interface InboxStatus {
   dailyNoteExists: boolean;
   inboxItemCount: number;
   inboxItems: InboxItem[];
+  previousDailyNotePath?: string;
   endOfDayChecks?: { label: string; checked: boolean }[];
 }
 
@@ -182,7 +183,40 @@ export async function inboxStatus(vaultPath: string, date: Date, config: VaultCo
     // not present
   }
   const inboxItems = await listInboxItems(vaultPath, config);
-  return { dailyNoteExists, inboxItemCount: inboxItems.length, inboxItems, endOfDayChecks };
+  const previousDailyNotePath = await findPreviousDailyNote(vaultPath, date, config);
+  return {
+    dailyNoteExists,
+    inboxItemCount: inboxItems.length,
+    inboxItems,
+    previousDailyNotePath,
+    endOfDayChecks,
+  };
+}
+
+async function findPreviousDailyNote(
+  vaultPath: string,
+  today: Date,
+  config: VaultConfig,
+): Promise<string | undefined> {
+  const dailyFolder = path.join(vaultPath, config.dailyNotesFolder);
+  let entries: import("node:fs").Dirent[];
+  try {
+    entries = await readdir(dailyFolder, { withFileTypes: true });
+  } catch {
+    return undefined;
+  }
+  const todayKey = format(today, "yyyy-MM-dd");
+  const dated = entries
+    .filter((e) => e.isFile() && e.name.endsWith(".md"))
+    .map((e) => {
+      const m = e.name.match(/^(\d{4}-\d{2}-\d{2})/);
+      return m ? { name: e.name, key: m[1]! } : undefined;
+    })
+    .filter((x): x is { name: string; key: string } => x !== undefined)
+    .filter((x) => x.key < todayKey);
+  if (dated.length === 0) return undefined;
+  dated.sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : 0));
+  return path.relative(vaultPath, path.join(dailyFolder, dated[0]!.name));
 }
 
 async function listInboxItems(vaultPath: string, config: VaultConfig): Promise<InboxItem[]> {
