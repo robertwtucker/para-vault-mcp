@@ -215,7 +215,11 @@ async function findPreviousDailyNote(
     .filter((x): x is { name: string; key: string } => x !== undefined)
     .filter((x) => x.key < todayKey);
   if (dated.length === 0) return undefined;
-  dated.sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : 0));
+  dated.sort((a, b) => {
+    if (a.key !== b.key) return a.key < b.key ? 1 : -1;
+    // Tie-break: longer/suffixed filename wins (Weekly Review > plain daily).
+    return a.name < b.name ? 1 : a.name > b.name ? -1 : 0;
+  });
   return toVaultRelative(vaultPath, path.join(dailyFolder, dated[0]!.name));
 }
 
