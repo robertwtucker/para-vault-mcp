@@ -29,6 +29,8 @@ export interface FindProjectsOptions {
   query?: string;
   status?: string;
   area?: string;
+  staleDays?: number;
+  updatedSince?: string;
   now?: Date;
 }
 
@@ -47,11 +49,17 @@ export async function findProjects(
 
   const statusFilter = options.status?.toLowerCase();
   const areaFilter = options.area ? normalizeArea(options.area) : undefined;
+  const updatedSinceDate = parseDateString(options.updatedSince);
 
   return summaries.filter((p) => {
     if (!matchesQuery(p, options.query)) return false;
     if (statusFilter !== undefined && p.status?.toLowerCase() !== statusFilter) return false;
     if (areaFilter !== undefined && (p.area === undefined || normalizeArea(p.area) !== areaFilter)) return false;
+    if (options.staleDays !== undefined && (p.daysSinceUpdate === undefined || p.daysSinceUpdate < options.staleDays)) return false;
+    if (updatedSinceDate !== undefined) {
+      const updatedDate = parseDateString(p.updated);
+      if (updatedDate === undefined || updatedDate < updatedSinceDate) return false;
+    }
     return true;
   });
 }

@@ -137,6 +137,41 @@ describe("findProjects", () => {
     }
   });
 
+  it("filters by stale_days against now (>= N days since update)", async () => {
+    const now = new Date(2026, 5, 15); // 2026-06-15: Active=45d, Waiting=61d
+    const stale60 = await findProjects(FIXTURE, DEFAULT_CONFIG, { now, staleDays: 60 });
+    expect(stale60.map((p) => p.name)).toEqual(["Sample Waiting"]);
+    const stale30 = await findProjects(FIXTURE, DEFAULT_CONFIG, { now, staleDays: 30 });
+    expect(stale30.map((p) => p.name).sort()).toEqual(["Sample Active", "Sample Waiting"]);
+  });
+
+  it("filters by updated_since (>= given YYYY-MM-DD)", async () => {
+    const now = new Date(2026, 5, 15);
+    const recent = await findProjects(FIXTURE, DEFAULT_CONFIG, { now, updatedSince: "2026-05-01" });
+    expect(recent.map((p) => p.name)).toEqual(["Sample Active"]);
+    const all = await findProjects(FIXTURE, DEFAULT_CONFIG, { now, updatedSince: "2026-04-01" });
+    expect(all.map((p) => p.name).sort()).toEqual(["Sample Active", "Sample Waiting"]);
+  });
+
+  it("AND-combines stale_days and updated_since when both passed", async () => {
+    const now = new Date(2026, 5, 15);
+    // stale_days=30 includes Active(45d) + Waiting(61d); updated_since=2026-04-20 excludes Waiting(2026-04-15)
+    const matches = await findProjects(FIXTURE, DEFAULT_CONFIG, {
+      now,
+      staleDays: 30,
+      updatedSince: "2026-04-20",
+    });
+    expect(matches.map((p) => p.name)).toEqual(["Sample Active"]);
+  });
+
+  it("excludes projects with no updated field when stale_days or updated_since is set", async () => {
+    const now = new Date(2026, 5, 15);
+    const stale = await findProjects(FIXTURE, DEFAULT_CONFIG, { now, staleDays: 0 });
+    expect(stale.find((p) => p.name === "Bare Project")).toBeUndefined();
+    const since = await findProjects(FIXTURE, DEFAULT_CONFIG, { now, updatedSince: "2020-01-01" });
+    expect(since.find((p) => p.name === "Bare Project")).toBeUndefined();
+  });
+
   it("surfaces frontmatterError on projects with malformed YAML frontmatter", async () => {
     const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
     try {
