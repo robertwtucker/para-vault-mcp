@@ -151,6 +151,46 @@ describe("inboxStatus", () => {
     const status = await inboxStatus(vault.path, new Date("2026-05-10T12:00:00Z"), DEFAULT_CONFIG);
     expect(status.inboxItems).toEqual([]);
   });
+
+  it("returns previousDailyNotePath as the most recent daily note strictly before today", async () => {
+    const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
+    mkdirSync(daily, { recursive: true });
+    writeFileSync(path.join(daily, "2026-05-07.md"), "");
+    writeFileSync(path.join(daily, "2026-05-08.md"), "");
+    writeFileSync(path.join(daily, "2026-05-10.md"), ""); // today
+    const today = new Date(2026, 4, 10);
+    const status = await inboxStatus(vault.path, today, DEFAULT_CONFIG);
+    expect(status.previousDailyNotePath).toBe("0-Inbox/Daily/2026-05-08.md");
+  });
+
+  it("recognizes weekly-review style filenames by their YYYY-MM-DD prefix", async () => {
+    const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
+    mkdirSync(daily, { recursive: true });
+    writeFileSync(path.join(daily, "2026-05-07.md"), "");
+    writeFileSync(path.join(daily, "2026-05-09 — Weekly Review W19.md"), "");
+    const today = new Date(2026, 4, 10);
+    const status = await inboxStatus(vault.path, today, DEFAULT_CONFIG);
+    expect(status.previousDailyNotePath).toBe("0-Inbox/Daily/2026-05-09 — Weekly Review W19.md");
+  });
+
+  it("leaves previousDailyNotePath undefined when no prior notes exist", async () => {
+    const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
+    mkdirSync(daily, { recursive: true });
+    writeFileSync(path.join(daily, "2026-05-10.md"), ""); // only today
+    const today = new Date(2026, 4, 10);
+    const status = await inboxStatus(vault.path, today, DEFAULT_CONFIG);
+    expect(status.previousDailyNotePath).toBeUndefined();
+  });
+
+  it("ignores files in dailyNotesFolder that don't start with YYYY-MM-DD", async () => {
+    const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
+    mkdirSync(daily, { recursive: true });
+    writeFileSync(path.join(daily, "README.md"), "");
+    writeFileSync(path.join(daily, "2026-05-08.md"), "");
+    const today = new Date(2026, 4, 10);
+    const status = await inboxStatus(vault.path, today, DEFAULT_CONFIG);
+    expect(status.previousDailyNotePath).toBe("0-Inbox/Daily/2026-05-08.md");
+  });
 });
 
 describe("prependToSectionList", () => {
