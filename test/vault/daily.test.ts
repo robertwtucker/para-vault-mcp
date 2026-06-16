@@ -8,7 +8,7 @@ import {
 } from "../../src/vault/daily.js";
 import { DEFAULT_CONFIG } from "../../src/vault/config.js";
 import { makeTmpVault } from "../helpers/tmp-vault.js";
-import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync, utimesSync } from "node:fs";
 import path from "node:path";
 
 describe("dailyNotePath", () => {
@@ -117,6 +117,39 @@ describe("inboxStatus", () => {
     writeFileSync(path.join(vault.path, "0-Inbox/capture-2.md"), "");
     const status = await inboxStatus(vault.path, new Date("2026-05-10T12:00:00Z"), DEFAULT_CONFIG);
     expect(status.inboxItemCount).toBe(2);
+  });
+
+  it("returns inboxItems sorted by mtime oldest-first, with name and vault-relative path", async () => {
+    const inbox = path.join(vault.path, "0-Inbox");
+    mkdirSync(inbox, { recursive: true });
+    const older = path.join(inbox, "older.md");
+    const newer = path.join(inbox, "newer.md");
+    writeFileSync(older, "");
+    writeFileSync(newer, "");
+    const t = new Date("2026-05-01T12:00:00Z");
+    utimesSync(older, t, t);
+    const t2 = new Date("2026-05-09T12:00:00Z");
+    utimesSync(newer, t2, t2);
+    const status = await inboxStatus(vault.path, new Date("2026-05-10T12:00:00Z"), DEFAULT_CONFIG);
+    expect(status.inboxItems).toEqual([
+      { name: "older", path: "0-Inbox/older.md" },
+      { name: "newer", path: "0-Inbox/newer.md" },
+    ]);
+  });
+
+  it("excludes .DS_Store and non-markdown files from inboxItems", async () => {
+    const inbox = path.join(vault.path, "0-Inbox");
+    mkdirSync(inbox, { recursive: true });
+    writeFileSync(path.join(inbox, "capture.md"), "");
+    writeFileSync(path.join(inbox, ".DS_Store"), "");
+    writeFileSync(path.join(inbox, "image.png"), "");
+    const status = await inboxStatus(vault.path, new Date("2026-05-10T12:00:00Z"), DEFAULT_CONFIG);
+    expect(status.inboxItems.map((i) => i.name)).toEqual(["capture"]);
+  });
+
+  it("returns empty inboxItems when the inbox folder is empty or missing", async () => {
+    const status = await inboxStatus(vault.path, new Date("2026-05-10T12:00:00Z"), DEFAULT_CONFIG);
+    expect(status.inboxItems).toEqual([]);
   });
 });
 

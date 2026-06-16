@@ -158,9 +158,15 @@ function upsertSectionListPrepend(content: string, section: string, line: string
   return content.slice(0, afterHeadingStart) + newBody + content.slice(sectionEnd);
 }
 
+export interface InboxItem {
+  name: string;
+  path: string;
+}
+
 export interface InboxStatus {
   dailyNoteExists: boolean;
   inboxItemCount: number;
+  inboxItems: InboxItem[];
   endOfDayChecks?: { label: string; checked: boolean }[];
 }
 
@@ -175,17 +181,31 @@ export async function inboxStatus(vaultPath: string, date: Date, config: VaultCo
   } catch {
     // not present
   }
+  const inboxItems = await listInboxItems(vaultPath, config);
+  return { dailyNoteExists, inboxItemCount: inboxItems.length, inboxItems, endOfDayChecks };
+}
+
+async function listInboxItems(vaultPath: string, config: VaultConfig): Promise<InboxItem[]> {
   const inbox = path.join(vaultPath, config.inboxFolder);
-  let inboxItemCount = 0;
+  let entries: import("node:fs").Dirent[];
   try {
-    const entries = await readdir(inbox, { withFileTypes: true });
-    inboxItemCount = entries.filter(
-      (e) => e.isFile() && e.name.endsWith(".md") && e.name !== ".DS_Store",
-    ).length;
+    entries = await readdir(inbox, { withFileTypes: true });
   } catch {
-    // missing inbox dir
+    return [];
   }
-  return { dailyNoteExists, inboxItemCount, endOfDayChecks };
+  const markdown = entries.filter((e) => e.isFile() && e.name.endsWith(".md") && e.name !== ".DS_Store");
+  const withStats = await Promise.all(
+    markdown.map(async (e) => {
+      const full = path.join(inbox, e.name);
+      const s = await stat(full);
+      return { name: e.name.replace(/\.md$/, ""), full, mtime: s.mtimeMs };
+    }),
+  );
+  withStats.sort((a, b) => a.mtime - b.mtime);
+  return withStats.map((e) => ({
+    name: e.name,
+    path: path.relative(vaultPath, e.full),
+  }));
 }
 
 function extractEndOfDayChecks(content: string, sectionName: string): { label: string; checked: boolean }[] {
