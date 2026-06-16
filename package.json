@@ -1,6 +1,6 @@
 {
   "name": "@robertwtucker/para-vault-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP server exposing a PARA-method Obsidian vault as structured tools.",
   "type": "module",
   "bin": { "para-vault-mcp": "dist/index.js" },

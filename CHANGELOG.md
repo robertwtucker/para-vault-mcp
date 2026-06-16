@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-15
+
+v0.3 makes review workflows direct. `find_project` gains filtering, sorting, and a limit so a daily review can ask for "oldest-stale active projects, top 5" in one call instead of a four-step grep-and-sort dance. `daily_review_status` returns the inbox-item list and the prior daily note's path alongside the existing state signals. Together they collapse the daily-review opener from four Bash operations to two tool calls.
+
+### Added
+
+- `find_project`: new optional filters (`status`, `area`, `stale_days`, `updated_since`), sort (`sort`, `order`), and `limit` params (#11). Inputs use snake_case; tool stays vocabulary-neutral on `status` — accepts any string for case-insensitive equality match rather than enumerating one user's PARA conventions.
+- `find_project`: new response fields `updated`, `lastReviewed`, `daysSinceUpdate` lifted from frontmatter and computed against today (#11).
+- `find_project`: `area` filter normalizes Obsidian `[[wikilink]]` brackets, quoting, and case before exact-matching, so a single query catches every presentation YAML produces (#11).
+- `daily_review_status`: new `inboxItems` response field — every markdown file in the configured inbox folder as `{ name, path }`, sorted by mtime oldest-first for triage prioritization (#12).
+- `daily_review_status`: new `previousDailyNotePath` response field — vault-relative path of the most recent daily note strictly before today, including weekly-review variants like `YYYY-MM-DD — Weekly Review.md` (#12).
+
+### Changed
+
+- `find_project`: sort default `'name'` is now deterministic regardless of platform. Previously ordering depended on globby's incidental filesystem traversal.
+
+### Fixed
+
+- `find_project`: `due:` frontmatter values written unquoted in YAML (e.g. `due: 2026-06-30`) are now correctly lifted. Previously silently dropped because the type check rejected js-yaml's parsed `Date` objects — affected every project in vaults using the natural YAML date form.
+
 ## [0.2.0] - 2026-05-28
 
 v0.2 stops being maintainer-shaped. Section names and PARA folder paths are configurable via `_system/PARA-conventions.md`; defaults preserved. Published on npm as `@robertwtucker/para-vault-mcp`.
@@ -36,6 +56,7 @@ Initial release — five tools, MIT-licensed, validated end-to-end against a rea
 - Claude Code and Desktop installation instructions in README.
 - PARA vault conventions documented in README.
 
-[Unreleased]: https://github.com/robertwtucker/para-vault-mcp/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/robertwtucker/para-vault-mcp/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/robertwtucker/para-vault-mcp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/robertwtucker/para-vault-mcp/releases/tag/v0.2.0
 [0.1.0]: https://github.com/robertwtucker/para-vault-mcp/releases/tag/v0.1.0
