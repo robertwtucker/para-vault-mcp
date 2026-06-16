@@ -43,6 +43,46 @@ describe("findProjects", () => {
     expect(projects.map((p) => p.name)).toEqual(["Sample Waiting"]);
   });
 
+  it("lifts updated, lastReviewed, due, and daysSinceUpdate from frontmatter", async () => {
+    const now = new Date(2026, 5, 15); // 2026-06-15 local
+    const projects = await findProjects(FIXTURE, DEFAULT_CONFIG, { now });
+    const active = projects.find((p) => p.name === "Sample Active");
+    expect(active?.updated).toBe("2026-05-01");
+    expect(active?.lastReviewed).toBe("2026-04-15");
+    expect(active?.due).toBe("2026-06-30");
+    expect(active?.daysSinceUpdate).toBe(45);
+  });
+
+  it("leaves date-derived fields undefined when frontmatter omits them", async () => {
+    const projects = await findProjects(FIXTURE, DEFAULT_CONFIG);
+    const bare = projects.find((p) => p.name === "Bare Project");
+    expect(bare?.updated).toBeUndefined();
+    expect(bare?.lastReviewed).toBeUndefined();
+    expect(bare?.daysSinceUpdate).toBeUndefined();
+  });
+
+  it("accepts both quoted-string and unquoted-Date frontmatter date forms", async () => {
+    const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
+    try {
+      const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
+      mkdirSync(projectsDir, { recursive: true });
+      const quotedDir = path.join(projectsDir, "Quoted");
+      mkdirSync(quotedDir, { recursive: true });
+      writeFileSync(
+        path.join(quotedDir, "_project.md"),
+        `---\nstatus: active\nupdated: "2026-05-01"\ndue: "2026-06-30"\n---\n`,
+      );
+      const now = new Date(2026, 5, 15);
+      const projects = await findProjects(tempVault, DEFAULT_CONFIG, { now });
+      const quoted = projects.find((p) => p.name === "Quoted");
+      expect(quoted?.updated).toBe("2026-05-01");
+      expect(quoted?.due).toBe("2026-06-30");
+      expect(quoted?.daysSinceUpdate).toBe(45);
+    } finally {
+      rmSync(tempVault, { recursive: true, force: true });
+    }
+  });
+
   it("surfaces frontmatterError on projects with malformed YAML frontmatter", async () => {
     const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
     try {

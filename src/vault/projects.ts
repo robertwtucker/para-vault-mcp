@@ -5,6 +5,7 @@
 import { readFile } from "node:fs/promises";
 import { globby } from "globby";
 import path from "node:path";
+import { differenceInCalendarDays } from "date-fns";
 import { parseFrontmatter } from "./frontmatter.js";
 import type { VaultConfig } from "./config.js";
 
@@ -17,12 +18,16 @@ export interface ProjectSummary {
   area?: string;
   nextAction?: string;
   due?: string;
+  updated?: string;
+  lastReviewed?: string;
+  daysSinceUpdate?: number;
   tags: string[];
   frontmatterError?: string;
 }
 
 export interface FindProjectsOptions {
   query?: string;
+  now?: Date;
 }
 
 export async function findProjects(
@@ -32,15 +37,16 @@ export async function findProjects(
 ): Promise<ProjectSummary[]> {
   const projectsRoot = path.join(vaultPath, config.projectsFolder);
   const dirs = await globby("*", { cwd: projectsRoot, onlyDirectories: true, dot: false });
+  const now = options.now ?? new Date();
 
   const summaries = await Promise.all(
-    dirs.map(async (dir) => loadProject(projectsRoot, dir)),
+    dirs.map(async (dir) => loadProject(projectsRoot, dir, now)),
   );
 
   return summaries.filter((p) => matchesQuery(p, options.query));
 }
 
-async function loadProject(projectsRoot: string, dir: string): Promise<ProjectSummary> {
+async function loadProject(projectsRoot: string, dir: string, now: Date): Promise<ProjectSummary> {
   const projectPath = path.join(projectsRoot, dir);
   const projectFile = path.join(projectPath, "_project.md");
   let raw: string | undefined;
@@ -50,6 +56,8 @@ async function loadProject(projectsRoot: string, dir: string): Promise<ProjectSu
     return { name: dir, path: projectPath, hasProjectFile: false, tags: [] };
   }
   const { data, error } = parseFrontmatter(raw);
+  const updated = toDateString(data.updated);
+  const updatedDate = parseDateString(updated);
   return {
     name: dir,
     path: projectPath,
@@ -58,10 +66,26 @@ async function loadProject(projectsRoot: string, dir: string): Promise<ProjectSu
     goal: typeof data.goal === "string" ? data.goal : undefined,
     area: typeof data.area === "string" ? data.area : undefined,
     nextAction: typeof data["next-action"] === "string" ? data["next-action"] : undefined,
-    due: typeof data.due === "string" ? data.due : undefined,
+    due: toDateString(data.due),
+    updated,
+    lastReviewed: toDateString(data["last-reviewed"]),
+    daysSinceUpdate: updatedDate ? differenceInCalendarDays(now, updatedDate) : undefined,
     tags: Array.isArray(data.tags) ? data.tags.filter((t): t is string => typeof t === "string") : [],
     frontmatterError: error,
   };
+}
+
+function toDateString(value: unknown): string | undefined {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  return undefined;
+}
+
+function parseDateString(s: string | undefined): Date | undefined {
+  if (!s) return undefined;
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return undefined;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
 
 function matchesQuery(p: ProjectSummary, query: string | undefined): boolean {
