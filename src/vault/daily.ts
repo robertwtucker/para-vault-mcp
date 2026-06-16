@@ -231,12 +231,18 @@ async function listInboxItems(vaultPath: string, config: VaultConfig): Promise<I
   const withStats = await Promise.all(
     markdown.map(async (e) => {
       const full = path.join(inbox, e.name);
-      const s = await stat(full);
-      return { name: e.name.replace(/\.md$/, ""), full, mtime: s.mtimeMs };
+      try {
+        const s = await stat(full);
+        return { name: e.name.replace(/\.md$/, ""), full, mtime: s.mtimeMs };
+      } catch {
+        // File vanished between readdir and stat (sync race, broken link). Skip.
+        return undefined;
+      }
     }),
   );
-  withStats.sort((a, b) => a.mtime - b.mtime);
-  return withStats.map((e) => ({
+  const valid = withStats.filter((x): x is { name: string; full: string; mtime: number } => x !== undefined);
+  valid.sort((a, b) => a.mtime - b.mtime);
+  return valid.map((e) => ({
     name: e.name,
     path: path.relative(vaultPath, e.full),
   }));
