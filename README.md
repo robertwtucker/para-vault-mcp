@@ -22,14 +22,14 @@ All write tools auto-prefix the standard markdown list bullet (`- `) and are ide
 
 ## Install
 
-The recommended install is via `npx` — no clone, no build.
+The recommended install is via `npx` — no clone, no build. Both install snippets below pin `@latest` so the MCP client picks up new releases on the next restart; without the tag, npx caches the first-resolved version and won't auto-update.
 
 ### Claude Code
 
 ```sh
 claude mcp add para-vault \
   -e OBSIDIAN_VAULT_PATH=/absolute/path/to/your/vault \
-  -- npx -y @robertwtucker/para-vault-mcp
+  -- npx -y @robertwtucker/para-vault-mcp@latest
 ```
 
 Restart Claude Code, then run `/mcp` — you should see `para-vault` listed with all five tools.
@@ -43,7 +43,7 @@ Add an `mcpServers` entry to `claude_desktop_config.json`:
   "mcpServers": {
     "para-vault": {
       "command": "npx",
-      "args": ["-y", "@robertwtucker/para-vault-mcp"],
+      "args": ["-y", "@robertwtucker/para-vault-mcp@latest"],
       "env": {
         "OBSIDIAN_VAULT_PATH": "/absolute/path/to/your/vault"
       }
