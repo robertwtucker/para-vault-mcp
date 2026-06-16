@@ -152,6 +152,7 @@ describe("inboxStatus", () => {
     expect(status.inboxItems).toEqual([]);
   });
 
+
   it("returns previousDailyNotePath as the most recent daily note strictly before today", async () => {
     const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
     mkdirSync(daily, { recursive: true });
