@@ -27,6 +27,8 @@ export interface ProjectSummary {
 
 export interface FindProjectsOptions {
   query?: string;
+  status?: string;
+  area?: string;
   now?: Date;
 }
 
@@ -43,7 +45,19 @@ export async function findProjects(
     dirs.map(async (dir) => loadProject(projectsRoot, dir, now)),
   );
 
-  return summaries.filter((p) => matchesQuery(p, options.query));
+  const statusFilter = options.status?.toLowerCase();
+  const areaFilter = options.area ? normalizeArea(options.area) : undefined;
+
+  return summaries.filter((p) => {
+    if (!matchesQuery(p, options.query)) return false;
+    if (statusFilter !== undefined && p.status?.toLowerCase() !== statusFilter) return false;
+    if (areaFilter !== undefined && (p.area === undefined || normalizeArea(p.area) !== areaFilter)) return false;
+    return true;
+  });
+}
+
+function normalizeArea(value: string): string {
+  return value.trim().replace(/^\[\[(.+)\]\]$/, "$1").trim().toLowerCase();
 }
 
 async function loadProject(projectsRoot: string, dir: string, now: Date): Promise<ProjectSummary> {

@@ -83,6 +83,60 @@ describe("findProjects", () => {
     }
   });
 
+  it("filters by status with case-insensitive equality", async () => {
+    const active = await findProjects(FIXTURE, DEFAULT_CONFIG, { status: "ACTIVE" });
+    expect(active.map((p) => p.name)).toEqual(["Sample Active"]);
+    const waiting = await findProjects(FIXTURE, DEFAULT_CONFIG, { status: "waiting" });
+    expect(waiting.map((p) => p.name)).toEqual(["Sample Waiting"]);
+  });
+
+  it("excludes projects without _project.md when status filter is active", async () => {
+    const projects = await findProjects(FIXTURE, DEFAULT_CONFIG, { status: "active" });
+    expect(projects.find((p) => p.name === "Bare Project")).toBeUndefined();
+  });
+
+  it("filters by area, normalizing bare, quoted, and [[wikilink]] presentations", async () => {
+    const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
+    try {
+      const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
+      mkdirSync(projectsDir, { recursive: true });
+      for (const [name, areaLine] of [
+        ["Bare", "area: Integration"],
+        ["Quoted", 'area: "Integration"'],
+        ["Wikilink", "area: '[[Integration]]'"],
+        ["Other", "area: DevOps"],
+      ] as const) {
+        const dir = path.join(projectsDir, name);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(path.join(dir, "_project.md"), `---\n${areaLine}\n---\n`);
+      }
+      const matches = await findProjects(tempVault, DEFAULT_CONFIG, { area: "integration" });
+      expect(matches.map((p) => p.name).sort()).toEqual(["Bare", "Quoted", "Wikilink"]);
+    } finally {
+      rmSync(tempVault, { recursive: true, force: true });
+    }
+  });
+
+  it("area filter is exact after normalization (no substring matches)", async () => {
+    const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
+    try {
+      const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
+      mkdirSync(projectsDir, { recursive: true });
+      for (const [name, area] of [
+        ["Eng", "Eng"],
+        ["Engineering", "Engineering"],
+      ] as const) {
+        const dir = path.join(projectsDir, name);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(path.join(dir, "_project.md"), `---\narea: ${area}\n---\n`);
+      }
+      const matches = await findProjects(tempVault, DEFAULT_CONFIG, { area: "Eng" });
+      expect(matches.map((p) => p.name)).toEqual(["Eng"]);
+    } finally {
+      rmSync(tempVault, { recursive: true, force: true });
+    }
+  });
+
   it("surfaces frontmatterError on projects with malformed YAML frontmatter", async () => {
     const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
     try {
