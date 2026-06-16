@@ -28,4 +28,34 @@ describe("findProjectTool", () => {
     expect(findProjectTool.name).toBe("find_project");
     expect(findProjectTool.description).toMatch(/project/i);
   });
+
+  it("plumbs status and area filters through to the vault layer", async () => {
+    const result = await findProjectTool.handler(
+      { status: "active", area: "Sample Area" },
+      FIXTURE,
+      DEFAULT_CONFIG,
+    );
+    const projects = JSON.parse(result.content[0]!.text);
+    expect(projects.map((p: { name: string }) => p.name)).toEqual(["Sample Active"]);
+  });
+
+  it("plumbs sort, order, and limit through to the vault layer", async () => {
+    const result = await findProjectTool.handler(
+      { sort: "name", order: "desc", limit: 1 },
+      FIXTURE,
+      DEFAULT_CONFIG,
+    );
+    const projects = JSON.parse(result.content[0]!.text);
+    expect(projects.map((p: { name: string }) => p.name)).toEqual(["Sample Waiting"]);
+  });
+
+  it("translates last_reviewed sort token to the vault's lastReviewed key", async () => {
+    const result = await findProjectTool.handler(
+      { sort: "last_reviewed" },
+      FIXTURE,
+      DEFAULT_CONFIG,
+    );
+    const projects = JSON.parse(result.content[0]!.text);
+    expect(projects[0].name).toBe("Sample Active");
+  });
 });
