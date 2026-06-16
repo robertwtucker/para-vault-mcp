@@ -174,6 +174,16 @@ describe("inboxStatus", () => {
     expect(status.previousDailyNotePath).toBe("0-Inbox/Daily/2026-05-09 — Weekly Review W19.md");
   });
 
+  it("breaks ties between same-date filenames deterministically (suffixed variant wins)", async () => {
+    const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
+    mkdirSync(daily, { recursive: true });
+    writeFileSync(path.join(daily, "2026-05-09.md"), "");
+    writeFileSync(path.join(daily, "2026-05-09 — Weekly Review W19.md"), "");
+    const today = new Date(2026, 4, 10);
+    const status = await inboxStatus(vault.path, today, DEFAULT_CONFIG);
+    expect(status.previousDailyNotePath).toBe("0-Inbox/Daily/2026-05-09 — Weekly Review W19.md");
+  });
+
   it("leaves previousDailyNotePath undefined when no prior notes exist", async () => {
     const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
     mkdirSync(daily, { recursive: true });
