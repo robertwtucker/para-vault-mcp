@@ -40,4 +40,23 @@ describe("dailyReviewStatusTool", () => {
   it("declares snake_case name", () => {
     expect(dailyReviewStatusTool.name).toBe("daily_review_status");
   });
+
+  it("description advertises the new response fields", () => {
+    expect(dailyReviewStatusTool.description).toMatch(/inbox/i);
+    expect(dailyReviewStatusTool.description).toMatch(/prior daily note|previous daily/i);
+  });
+
+  it("returns inboxItems and previousDailyNotePath through the tool layer", async () => {
+    await ensureDailyNote(vault.path, new Date(), DEFAULT_CONFIG);
+    mkdirSync(path.join(vault.path, "0-Inbox"), { recursive: true });
+    writeFileSync(path.join(vault.path, "0-Inbox/capture.md"), "");
+    const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
+    writeFileSync(path.join(daily, "2020-01-01.md"), "");
+    const result = await dailyReviewStatusTool.handler({}, vault.path, DEFAULT_CONFIG);
+    const status = JSON.parse(result.content[0]!.text);
+    expect(Array.isArray(status.inboxItems)).toBe(true);
+    expect(status.inboxItems[0]).toHaveProperty("name");
+    expect(status.inboxItems[0]).toHaveProperty("path");
+    expect(status.previousDailyNotePath).toBe("0-Inbox/Daily/2020-01-01.md");
+  });
 });
