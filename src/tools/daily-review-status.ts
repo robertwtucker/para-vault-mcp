@@ -13,7 +13,7 @@ const inputObjectSchema = z.object({});
 export const dailyReviewStatusTool = {
   name: "daily_review_status" as const,
   description:
-    "Report whether today's daily note exists, the count of unprocessed items in 0-Inbox/, and the state of the End-of-Day Check checkboxes (if the note has them).",
+    "Report the state of today's daily-review surface: whether today's daily note exists, the unprocessed items in 0-Inbox/ (count and the list itself, sorted oldest-first by mtime), the vault-relative path of the most recent prior daily note for reconciliation, and the state of the End-of-Day Check checkboxes (if the note has them).",
   inputSchema: dailyReviewStatusInputSchema,
   async handler(_args: z.infer<typeof inputObjectSchema>, vaultPath: string, config: VaultConfig) {
     const status = await inboxStatus(vaultPath, new Date(), config);
