@@ -2,21 +2,21 @@
 
 An [MCP](https://modelcontextprotocol.io) server that exposes a [PARA-method](https://fortelabs.com/blog/para/) [Obsidian](https://obsidian.md) vault as structured tools — so an agent can find your active projects, surface their next actions, and write to your daily note without you copy-pasting markdown.
 
-v0.2 stops being maintainer-shaped: section names and PARA folder paths are configurable via `_system/PARA-conventions.md`. Defaults match the maintainer's vault; vaults that diverge declare their conventions and continue to work without code changes.
+Section names and PARA folder paths are configurable via `_system/PARA-conventions.md`. Defaults match the maintainer's vault; vaults that diverge declare their conventions and continue to work without code changes.
 
 ## Status
 
-v0.2 — five tools, MIT-licensed, published on npm as `@robertwtucker/para-vault-mcp`. Section names and folder paths configurable via `_system/PARA-conventions.md`; defaults preserved. Roadmap tracked openly in [GitHub Issues](https://github.com/robertwtucker/para-vault-mcp/issues).
+v0.3 — five tools, MIT-licensed, published on npm as `@robertwtucker/para-vault-mcp`. v0.3 makes review workflows direct: `find_project` supports filtering, sorting, and a limit so a daily or weekly review can ask for "oldest-stale active projects, top 5" in one call, and `daily_review_status` returns the inbox-item list and the prior daily note's path alongside the existing state signals. Roadmap tracked openly in [GitHub Issues](https://github.com/robertwtucker/para-vault-mcp/issues).
 
 ## Tools
 
 | Name                  | Purpose                                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |
-| `find_project`        | Search active projects in `1-Projects/` by name fragment or tag.                                       |
+| `find_project`        | List PARA projects in `1-Projects/` with optional filtering, sorting, and a limit.                     |
 | `next_action`         | Return the next action for a project (frontmatter `next-action`, falling back to top unchecked task).  |
 | `capture`             | Append an idea, URL, or note to today's daily-note **Captures** section.                               |
 | `log_work`            | Append a work-log entry (something done or worked on) to today's daily-note **Work Log** section.      |
-| `daily_review_status` | Report whether today's daily note exists, the count of unprocessed top-level `.md` files in `0-Inbox/`, and the parsed state of any `## End-of-Day Check` checkboxes.                            |
+| `daily_review_status` | Report the state of today's daily-review surface: today's note existence, inbox items and count, the prior daily note's path for reconciliation, and `## End-of-Day Check` checkboxes.          |
 
 All write tools auto-prefix the standard markdown list bullet (`- `) and are idempotent against double-prefixing.
 
@@ -105,18 +105,22 @@ The defaults below match the maintainer's vault. Vaults with different folder na
 - `## Captures` (for `capture`)
 - `## Work Log` (for `log_work`)
 
-**Project frontmatter** referenced by `next_action`:
+**Project frontmatter** referenced by the project tools:
 
 ```yaml
 ---
 type: project
-status: active # find_project returns only `status: active`
+status: active # find_project's `status` filter does case-insensitive equality match
 next-action: "..." # next_action returns this if present
+area: "..." # find_project's `area` filter normalizes brackets/quoting/case before exact match
+updated: 2026-06-10 # find_project sorts and filters by staleness against this
+last-reviewed: 2026-06-10 # find_project can sort by this
+due: 2026-07-08 # find_project can sort by this
 tags: [...]
 ---
 ```
 
-When `next-action` is absent from frontmatter, `next_action` falls back to the first unchecked `- [ ] ...` task in the body.
+`find_project` returns every project in `1-Projects/` by default — vocabulary on `status` is yours, not the tool's. Pass `status: "active"` (or whatever you use) to filter. When `next-action` is absent from frontmatter, `next_action` falls back to the first unchecked `- [ ] ...` task in the body. Date fields are read whether written quoted (`updated: "2026-06-10"`) or as bare YAML dates (`updated: 2026-06-10`).
 
 ### Customizing conventions
 
@@ -139,7 +143,7 @@ Any unspecified key keeps its default. Folder paths must resolve inside the vaul
 
 ```sh
 pnpm install         # install dependencies (lockfile-strict)
-pnpm test            # run the full test suite (63 tests as of v0.2)
+pnpm test            # run the full test suite (91 tests as of v0.3)
 pnpm run typecheck   # tsc --noEmit
 pnpm run build       # clean + tsc; rebuilds dist/ hermetically
 pnpm run dev         # run from source via tsx (no rebuild required)
