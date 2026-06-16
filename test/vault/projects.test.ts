@@ -172,6 +172,40 @@ describe("findProjects", () => {
     expect(since.find((p) => p.name === "Bare Project")).toBeUndefined();
   });
 
+  it("defaults to sort by name ascending", async () => {
+    const projects = await findProjects(FIXTURE, DEFAULT_CONFIG);
+    expect(projects.map((p) => p.name)).toEqual(["Bare Project", "Sample Active", "Sample Waiting"]);
+  });
+
+  it("sorts by updated ascending and descending", async () => {
+    const asc = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "updated", order: "asc" });
+    const ascNames = asc.map((p) => p.name);
+    expect(ascNames.indexOf("Sample Waiting")).toBeLessThan(ascNames.indexOf("Sample Active"));
+
+    const desc = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "updated", order: "desc" });
+    const descNames = desc.map((p) => p.name);
+    expect(descNames.indexOf("Sample Active")).toBeLessThan(descNames.indexOf("Sample Waiting"));
+  });
+
+  it("sorts projects with missing sort-key values to the end regardless of order", async () => {
+    const asc = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "updated", order: "asc" });
+    expect(asc[asc.length - 1]?.name).toBe("Bare Project");
+    const desc = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "updated", order: "desc" });
+    expect(desc[desc.length - 1]?.name).toBe("Bare Project");
+  });
+
+  it("sorts by due and lastReviewed", async () => {
+    const byDue = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "due" });
+    expect(byDue[0]?.name).toBe("Sample Active");
+    const byReviewed = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "lastReviewed" });
+    expect(byReviewed[0]?.name).toBe("Sample Active");
+  });
+
+  it("limit caps result count after sort", async () => {
+    const projects = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "name", limit: 2 });
+    expect(projects.map((p) => p.name)).toEqual(["Bare Project", "Sample Active"]);
+  });
+
   it("surfaces frontmatterError on projects with malformed YAML frontmatter", async () => {
     const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
     try {
