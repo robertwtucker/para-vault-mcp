@@ -103,7 +103,8 @@ describe("findProjects", () => {
       for (const [name, areaLine] of [
         ["Bare", "area: Integration"],
         ["Quoted", 'area: "Integration"'],
-        ["Wikilink", "area: '[[Integration]]'"],
+        ["QuotedWikilink", "area: '[[Integration]]'"],
+        ["UnquotedWikilink", "area: [[Integration]]"],
         ["Other", "area: DevOps"],
       ] as const) {
         const dir = path.join(projectsDir, name);
@@ -111,7 +112,12 @@ describe("findProjects", () => {
         writeFileSync(path.join(dir, "_project.md"), `---\n${areaLine}\n---\n`);
       }
       const matches = await findProjects(tempVault, DEFAULT_CONFIG, { area: "integration" });
-      expect(matches.map((p) => p.name).sort()).toEqual(["Bare", "Quoted", "Wikilink"]);
+      expect(matches.map((p) => p.name).sort()).toEqual([
+        "Bare",
+        "Quoted",
+        "QuotedWikilink",
+        "UnquotedWikilink",
+      ]);
     } finally {
       rmSync(tempVault, { recursive: true, force: true });
     }

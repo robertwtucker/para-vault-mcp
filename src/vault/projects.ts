@@ -104,6 +104,17 @@ function normalizeArea(value: string): string {
   return value.trim().replace(/^\[\[(.+)\]\]$/, "$1").trim().toLowerCase();
 }
 
+function extractAreaString(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.length === 1) {
+    const inner = value[0];
+    if (Array.isArray(inner) && inner.length === 1 && typeof inner[0] === "string") {
+      return inner[0];
+    }
+  }
+  return undefined;
+}
+
 async function loadProject(projectsRoot: string, dir: string, now: Date): Promise<ProjectSummary> {
   const projectPath = path.join(projectsRoot, dir);
   const projectFile = path.join(projectPath, "_project.md");
@@ -122,7 +133,7 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
     hasProjectFile: true,
     status: typeof data.status === "string" ? data.status : undefined,
     goal: typeof data.goal === "string" ? data.goal : undefined,
-    area: typeof data.area === "string" ? data.area : undefined,
+    area: extractAreaString(data.area),
     nextAction: typeof data["next-action"] === "string" ? data["next-action"] : undefined,
     due: toDateString(data.due),
     updated,
