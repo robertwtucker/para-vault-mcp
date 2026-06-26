@@ -6,6 +6,7 @@ settings:
 
 overrides:
   hono: ^4.12.25
+  qs: ^6.15.2
   vite: ^7.3.5
 
 importers:
