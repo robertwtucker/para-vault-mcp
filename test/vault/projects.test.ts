@@ -95,7 +95,7 @@ describe("findProjects", () => {
     expect(projects.find((p) => p.name === "Bare Project")).toBeUndefined();
   });
 
-  it("filters by area, normalizing bare, quoted, and [[wikilink]] presentations", async () => {
+  it("filters by area across every canonical Obsidian YAML shape", async () => {
     const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
     try {
       const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
@@ -105,6 +105,10 @@ describe("findProjects", () => {
         ["Quoted", 'area: "Integration"'],
         ["QuotedWikilink", "area: '[[Integration]]'"],
         ["UnquotedWikilink", "area: [[Integration]]"],
+        ["QuotedPath", "area: '[[Areas/Integration]]'"],
+        ["UnquotedPath", "area: [[Areas/Integration]]"],
+        ["QuotedAlias", "area: '[[Areas/Integration|Integration]]'"],
+        ["UnquotedAlias", "area: [[Areas/Integration|Integration]]"],
         ["Other", "area: DevOps"],
       ] as const) {
         const dir = path.join(projectsDir, name);
@@ -115,9 +119,33 @@ describe("findProjects", () => {
       expect(matches.map((p) => p.name).sort()).toEqual([
         "Bare",
         "Quoted",
+        "QuotedAlias",
+        "QuotedPath",
         "QuotedWikilink",
+        "UnquotedAlias",
+        "UnquotedPath",
         "UnquotedWikilink",
       ]);
+    } finally {
+      rmSync(tempVault, { recursive: true, force: true });
+    }
+  });
+
+  it("treats wikilink alias as the canonical area name", async () => {
+    const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
+    try {
+      const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
+      mkdirSync(projectsDir, { recursive: true });
+      const dir = path.join(projectsDir, "Aliased");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        path.join(dir, "_project.md"),
+        `---\narea: "[[Areas/Health|Health]]"\n---\n`,
+      );
+      const matches = await findProjects(tempVault, DEFAULT_CONFIG, { area: "Health" });
+      expect(matches.map((p) => p.name)).toEqual(["Aliased"]);
+      const noMatch = await findProjects(tempVault, DEFAULT_CONFIG, { area: "areas/health" });
+      expect(noMatch.map((p) => p.name)).toEqual(["Aliased"]);
     } finally {
       rmSync(tempVault, { recursive: true, force: true });
     }
