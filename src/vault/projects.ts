@@ -101,7 +101,18 @@ function sortValue(p: ProjectSummary, key: ProjectSortKey): string | undefined {
 }
 
 function normalizeArea(value: string): string {
-  return value.trim().replace(/^\[\[(.+)\]\]$/, "$1").trim().toLowerCase();
+  let s = value.trim();
+  const wikilink = s.match(/^\[\[(.+)\]\]$/);
+  if (wikilink) s = wikilink[1]!.trim();
+  const pipe = s.indexOf("|");
+  if (pipe !== -1) {
+    const alias = s.slice(pipe + 1).trim();
+    if (alias.length > 0) return alias.toLowerCase();
+    s = s.slice(0, pipe);
+  }
+  const lastSlash = s.lastIndexOf("/");
+  if (lastSlash !== -1) s = s.slice(lastSlash + 1);
+  return s.trim().toLowerCase();
 }
 
 function extractAreaString(value: unknown): string | undefined {
