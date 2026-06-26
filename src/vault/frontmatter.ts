@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
  * SPDX-License-Identifier: MIT
  */
-import matter from "gray-matter";
+import matter from "@11ty/gray-matter";
 
 export interface ParsedNote {
   data: Record<string, unknown>;
