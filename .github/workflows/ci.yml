@@ -18,6 +18,9 @@ jobs:
     name: Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     strategy:
       fail-fast: false
       matrix:
