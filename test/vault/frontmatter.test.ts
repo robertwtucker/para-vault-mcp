@@ -29,4 +29,16 @@ describe("parseFrontmatter", () => {
     expect(result.error).toBeDefined();
     expect(result.error).toMatch(/./);
   });
+
+  it("exposes the raw YAML block between delimiters as rawFrontmatter", () => {
+    const input = `---\ntype: project\nupdated: 2026-05-01T16:00:00-08:00\n---\n\nBody`;
+    const result = parseFrontmatter(input);
+    expect(result.rawFrontmatter).toContain("type: project");
+    expect(result.rawFrontmatter).toContain("updated: 2026-05-01T16:00:00-08:00");
+  });
+
+  it("returns empty rawFrontmatter when no frontmatter is present", () => {
+    const result = parseFrontmatter("# Just a body");
+    expect(result.rawFrontmatter).toBe("");
+  });
 });

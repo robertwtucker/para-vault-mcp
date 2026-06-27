@@ -61,6 +61,26 @@ describe("findProjects", () => {
     expect(bare?.daysSinceUpdate).toBeUndefined();
   });
 
+  it("preserves the user's calendar date when frontmatter carries a TZ offset", async () => {
+    const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
+    try {
+      const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
+      mkdirSync(projectsDir, { recursive: true });
+      const dir = path.join(projectsDir, "Offset");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        path.join(dir, "_project.md"),
+        `---\ndue: 2026-06-30T20:00:00-08:00\nupdated: 2026-05-01T16:00:00-08:00\n---\n`,
+      );
+      const projects = await findProjects(tempVault, DEFAULT_CONFIG);
+      const offset = projects.find((p) => p.name === "Offset");
+      expect(offset?.due).toBe("2026-06-30");
+      expect(offset?.updated).toBe("2026-05-01");
+    } finally {
+      rmSync(tempVault, { recursive: true, force: true });
+    }
+  });
+
   it("accepts both quoted-string and unquoted-Date frontmatter date forms", async () => {
     const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
     try {

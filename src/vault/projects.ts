@@ -135,9 +135,10 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
   } catch {
     return { name: dir, path: projectPath, hasProjectFile: false, tags: [] };
   }
-  const { data, error } = parseFrontmatter(raw);
-  const updated = toDateString(data.updated);
-  const updatedDate = parseDateString(updated);
+  const { data, error, rawFrontmatter } = parseFrontmatter(raw);
+  const updated = readDateField(data, "updated", rawFrontmatter);
+  const due = readDateField(data, "due", rawFrontmatter);
+  const lastReviewed = readDateField(data, "last-reviewed", rawFrontmatter);
   return {
     name: dir,
     path: projectPath,
@@ -146,19 +147,43 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
     goal: typeof data.goal === "string" ? data.goal : undefined,
     area: extractAreaString(data.area),
     nextAction: typeof data["next-action"] === "string" ? data["next-action"] : undefined,
-    due: toDateString(data.due),
+    due,
     updated,
-    lastReviewed: toDateString(data["last-reviewed"]),
-    daysSinceUpdate: updatedDate ? differenceInCalendarDays(now, updatedDate) : undefined,
+    lastReviewed,
+    daysSinceUpdate: updated ? differenceInCalendarDays(now, parseDateString(updated)!) : undefined,
     tags: Array.isArray(data.tags) ? data.tags.filter((t): t is string => typeof t === "string") : [],
     frontmatterError: error,
   };
 }
 
-function toDateString(value: unknown): string | undefined {
+function readDateField(
+  data: Record<string, unknown>,
+  key: string,
+  rawFrontmatter: string,
+): string | undefined {
+  const value = data[key];
+  if (value === undefined) return undefined;
+  const rawScalar = rawScalarForKey(rawFrontmatter, key);
+  if (rawScalar !== undefined) {
+    const cleaned = stripYamlQuotes(rawScalar.trim());
+    if (/^\d{4}-\d{2}-\d{2}/.test(cleaned)) return cleaned.slice(0, 10);
+  }
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (typeof value === "string" && value.trim().length > 0) return value.trim();
   return undefined;
+}
+
+function rawScalarForKey(rawYaml: string, key: string): string | undefined {
+  const escaped = key.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+  const m = rawYaml.match(new RegExp(`^${escaped}:\\s*(.*?)\\s*$`, "m"));
+  return m ? m[1] : undefined;
+}
+
+function stripYamlQuotes(s: string): string {
+  if (s.length >= 2 && ((s[0] === '"' && s.at(-1) === '"') || (s[0] === "'" && s.at(-1) === "'"))) {
+    return s.slice(1, -1);
+  }
+  return s;
 }
 
 function parseDateString(s: string | undefined): Date | undefined {
