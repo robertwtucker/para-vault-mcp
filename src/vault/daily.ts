@@ -173,23 +173,19 @@ export interface InboxStatus {
 
 export async function inboxStatus(vaultPath: string, date: Date, config: VaultConfig): Promise<InboxStatus> {
   const file = dailyNotePath(vaultPath, date, config);
-  let dailyNoteExists = false;
-  let endOfDayChecks: { label: string; checked: boolean }[] | undefined;
-  try {
-    const content = await readFile(file, "utf8");
-    dailyNoteExists = true;
-    endOfDayChecks = extractEndOfDayChecks(content, config.endOfDayCheckSection);
-  } catch {
-    // not present
-  }
-  const inboxItems = await listInboxItems(vaultPath, config);
-  const previousDailyNotePath = await findPreviousDailyNote(vaultPath, date, config);
+  const [content, inboxItems, previousDailyNotePath] = await Promise.all([
+    readFile(file, "utf8").catch(() => undefined),
+    listInboxItems(vaultPath, config),
+    findPreviousDailyNote(vaultPath, date, config),
+  ]);
   return {
-    dailyNoteExists,
+    dailyNoteExists: content !== undefined,
     inboxItemCount: inboxItems.length,
     inboxItems,
     previousDailyNotePath,
-    endOfDayChecks,
+    endOfDayChecks: content !== undefined
+      ? extractEndOfDayChecks(content, config.endOfDayCheckSection)
+      : undefined,
   };
 }
 
