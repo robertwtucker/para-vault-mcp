@@ -260,6 +260,60 @@ describe("findProjects", () => {
     expect(projects.map((p) => p.name)).toEqual(["Bare Project", "Sample Active"]);
   });
 
+  it("surfaces dateErrors when a date field is impossible (2026-13-45)", async () => {
+    const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
+    try {
+      const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
+      mkdirSync(projectsDir, { recursive: true });
+      const dir = path.join(projectsDir, "BadDate");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        path.join(dir, "_project.md"),
+        `---\nupdated: 2026-13-45\ndue: "2026-02-30"\n---\n`,
+      );
+      const projects = await findProjects(tempVault, DEFAULT_CONFIG);
+      const bad = projects.find((p) => p.name === "BadDate");
+      expect(bad?.updated).toBeUndefined();
+      expect(bad?.due).toBeUndefined();
+      expect(bad?.daysSinceUpdate).toBeUndefined();
+      expect(bad?.dateErrors).toEqual(
+        expect.arrayContaining([
+          { field: "updated", value: "2026-13-45" },
+          { field: "due", value: "2026-02-30" },
+        ]),
+      );
+      expect(bad?.dateErrors).toHaveLength(2);
+    } finally {
+      rmSync(tempVault, { recursive: true, force: true });
+    }
+  });
+
+  it("omits dateErrors when every date field is valid", async () => {
+    const projects = await findProjects(FIXTURE, DEFAULT_CONFIG);
+    const active = projects.find((p) => p.name === "Sample Active");
+    expect(active?.dateErrors).toBeUndefined();
+  });
+
+  it("excludes projects with invalid updated values from updated_since filter", async () => {
+    const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
+    try {
+      const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
+      mkdirSync(projectsDir, { recursive: true });
+      for (const [name, line] of [
+        ["Good", "updated: 2026-05-01"],
+        ["Bad", "updated: 2026-13-45"],
+      ] as const) {
+        const dir = path.join(projectsDir, name);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(path.join(dir, "_project.md"), `---\n${line}\n---\n`);
+      }
+      const matches = await findProjects(tempVault, DEFAULT_CONFIG, { updatedSince: "2026-04-01" });
+      expect(matches.map((p) => p.name)).toEqual(["Good"]);
+    } finally {
+      rmSync(tempVault, { recursive: true, force: true });
+    }
+  });
+
   it("surfaces frontmatterError on projects with malformed YAML frontmatter", async () => {
     const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
     try {

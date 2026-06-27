@@ -9,6 +9,11 @@ import { differenceInCalendarDays } from "date-fns";
 import { parseFrontmatter } from "./frontmatter.js";
 import type { VaultConfig } from "./config.js";
 
+export interface DateError {
+  field: string;
+  value: string;
+}
+
 export interface ProjectSummary {
   name: string;
   path: string;
@@ -23,6 +28,7 @@ export interface ProjectSummary {
   daysSinceUpdate?: number;
   tags: string[];
   frontmatterError?: string;
+  dateErrors?: DateError[];
 }
 
 export type ProjectSortKey = "name" | "updated" | "lastReviewed" | "due";
@@ -136,9 +142,11 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
     return { name: dir, path: projectPath, hasProjectFile: false, tags: [] };
   }
   const { data, error, rawFrontmatter } = parseFrontmatter(raw);
-  const updated = readDateField(data, "updated", rawFrontmatter);
-  const due = readDateField(data, "due", rawFrontmatter);
-  const lastReviewed = readDateField(data, "last-reviewed", rawFrontmatter);
+  const dateErrors: DateError[] = [];
+  const updated = readDateField(data, "updated", rawFrontmatter, dateErrors);
+  const due = readDateField(data, "due", rawFrontmatter, dateErrors);
+  const lastReviewed = readDateField(data, "last-reviewed", rawFrontmatter, dateErrors);
+  const updatedDate = parseDateString(updated);
   return {
     name: dir,
     path: projectPath,
@@ -150,9 +158,10 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
     due,
     updated,
     lastReviewed,
-    daysSinceUpdate: updated ? differenceInCalendarDays(now, parseDateString(updated)!) : undefined,
+    daysSinceUpdate: updatedDate ? differenceInCalendarDays(now, updatedDate) : undefined,
     tags: Array.isArray(data.tags) ? data.tags.filter((t): t is string => typeof t === "string") : [],
     frontmatterError: error,
+    dateErrors: dateErrors.length > 0 ? dateErrors : undefined,
   };
 }
 
@@ -160,13 +169,21 @@ function readDateField(
   data: Record<string, unknown>,
   key: string,
   rawFrontmatter: string,
+  dateErrors: DateError[],
 ): string | undefined {
   const value = data[key];
   if (value === undefined) return undefined;
   const rawScalar = rawScalarForKey(rawFrontmatter, key);
   if (rawScalar !== undefined) {
     const cleaned = stripYamlQuotes(rawScalar.trim());
-    if (/^\d{4}-\d{2}-\d{2}/.test(cleaned)) return cleaned.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}/.test(cleaned)) {
+      const datePart = cleaned.slice(0, 10);
+      if (parseDateString(datePart) === undefined) {
+        dateErrors.push({ field: key, value: cleaned });
+        return undefined;
+      }
+      return datePart;
+    }
   }
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (typeof value === "string" && value.trim().length > 0) return value.trim();
@@ -190,7 +207,12 @@ function parseDateString(s: string | undefined): Date | undefined {
   if (!s) return undefined;
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return undefined;
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const y = Number(m[1]);
+  const monthIdx = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  const d = new Date(y, monthIdx, day);
+  if (d.getFullYear() !== y || d.getMonth() !== monthIdx || d.getDate() !== day) return undefined;
+  return d;
 }
 
 function matchesQuery(p: ProjectSummary, query: string | undefined): boolean {
