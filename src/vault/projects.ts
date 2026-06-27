@@ -187,7 +187,15 @@ function readDateField(
     }
   }
   if (value instanceof Date) {
-    return { display: value.toISOString().slice(0, 10), date: value };
+    // js-yaml constructs bare YAML dates as UTC midnight. Re-route through
+    // parseDateString so the cached Date is local midnight, matching how
+    // updatedSinceDate is constructed on the query side. Without this, the
+    // updated_since filter compares UTC midnight against local midnight in
+    // non-UTC timezones, misclassifying boundary dates. Hits this branch on
+    // YAML anchors (`updated: &u 2026-05-01`) and other cases where the raw
+    // scalar doesn't match the date-shape regex.
+    const display = value.toISOString().slice(0, 10);
+    return { display, date: parseDateString(display) };
   }
   if (typeof value === "string" && value.trim().length > 0) {
     const trimmed = value.trim();

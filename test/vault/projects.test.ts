@@ -260,6 +260,37 @@ describe("findProjects", () => {
     expect(projects.map((p) => p.name)).toEqual(["Bare Project", "Sample Active"]);
   });
 
+  it("caches local-midnight Date when raw scalar misses the date-shape regex", async () => {
+    // Trigger the fallback `value instanceof Date` path. A YAML anchor on the
+    // date field produces a raw scalar like "&u 2026-05-01" — gray-matter still
+    // resolves it to a Date for `data.updated`, but rawScalarForKey returns the
+    // anchor text, which the date-shape regex rejects. Without the fix,
+    // _updatedDate would be js-yaml's UTC midnight Date, which compares
+    // inconsistently against the local-midnight Date built from a query string.
+    const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
+    try {
+      const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
+      mkdirSync(projectsDir, { recursive: true });
+      const dir = path.join(projectsDir, "Anchored");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(path.join(dir, "_project.md"), `---\nupdated: &u 2026-05-01\n---\n`);
+      const now = new Date(2026, 5, 15); // 2026-06-15 local
+      const projects = await findProjects(tempVault, DEFAULT_CONFIG, { now });
+      const anchored = projects.find((p) => p.name === "Anchored");
+      expect(anchored?.updated).toBe("2026-05-01");
+      // daysSinceUpdate = 45 with local-midnight cached Date; would be 46 (in any
+      // non-UTC western timezone) with the unconverted js-yaml UTC-midnight Date.
+      expect(anchored?.daysSinceUpdate).toBe(45);
+      // updated_since boundary: project must match when the query date equals the
+      // project's updated date. With UTC-midnight cached Date, west-of-UTC would
+      // see this as "before" the local-midnight query date and exclude it.
+      const matches = await findProjects(tempVault, DEFAULT_CONFIG, { now, updatedSince: "2026-05-01" });
+      expect(matches.map((p) => p.name)).toContain("Anchored");
+    } finally {
+      rmSync(tempVault, { recursive: true, force: true });
+    }
+  });
+
   it("surfaces dateErrors when a date field is impossible (2026-13-45)", async () => {
     const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
     try {
