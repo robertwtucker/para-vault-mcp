@@ -24,14 +24,14 @@ export interface ProjectSummary {
   nextAction?: string;
   due?: string;
   updated?: string;
-  lastReviewed?: string;
+  last_reviewed?: string;
   daysSinceUpdate?: number;
   tags: string[];
   frontmatterError?: string;
   dateErrors?: DateError[];
 }
 
-export type ProjectSortKey = "name" | "updated" | "lastReviewed" | "due";
+export type ProjectSortKey = "name" | "updated" | "last_reviewed" | "due";
 export type SortOrder = "asc" | "desc";
 
 export interface FindProjectsOptions {
@@ -86,8 +86,8 @@ function sortProjects(
 ): ProjectSummary[] {
   const dir = order === "desc" ? -1 : 1;
   return [...projects].sort((a, b) => {
-    const av = sortValue(a, sortKey);
-    const bv = sortValue(b, sortKey);
+    const av = a[sortKey];
+    const bv = b[sortKey];
     if (av === undefined && bv === undefined) return a.name.localeCompare(b.name);
     if (av === undefined) return 1;
     if (bv === undefined) return -1;
@@ -95,15 +95,6 @@ function sortProjects(
     if (av > bv) return 1 * dir;
     return a.name.localeCompare(b.name);
   });
-}
-
-function sortValue(p: ProjectSummary, key: ProjectSortKey): string | undefined {
-  switch (key) {
-    case "name": return p.name;
-    case "updated": return p.updated;
-    case "lastReviewed": return p.lastReviewed;
-    case "due": return p.due;
-  }
 }
 
 function normalizeArea(value: string): string {
@@ -145,7 +136,7 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
   const dateErrors: DateError[] = [];
   const updated = readDateField(data, "updated", rawFrontmatter, dateErrors);
   const due = readDateField(data, "due", rawFrontmatter, dateErrors);
-  const lastReviewed = readDateField(data, "last-reviewed", rawFrontmatter, dateErrors);
+  const last_reviewed = readDateField(data, "last-reviewed", rawFrontmatter, dateErrors);
   const updatedDate = parseDateString(updated);
   return {
     name: dir,
@@ -157,7 +148,7 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
     nextAction: typeof data["next-action"] === "string" ? data["next-action"] : undefined,
     due,
     updated,
-    lastReviewed,
+    last_reviewed,
     daysSinceUpdate: updatedDate ? differenceInCalendarDays(now, updatedDate) : undefined,
     tags: Array.isArray(data.tags) ? data.tags.filter((t): t is string => typeof t === "string") : [],
     frontmatterError: error,

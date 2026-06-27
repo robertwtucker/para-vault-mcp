@@ -43,12 +43,12 @@ describe("findProjects", () => {
     expect(projects.map((p) => p.name)).toEqual(["Sample Waiting"]);
   });
 
-  it("lifts updated, lastReviewed, due, and daysSinceUpdate from frontmatter", async () => {
+  it("lifts updated, last_reviewed, due, and daysSinceUpdate from frontmatter", async () => {
     const now = new Date(2026, 5, 15); // 2026-06-15 local
     const projects = await findProjects(FIXTURE, DEFAULT_CONFIG, { now });
     const active = projects.find((p) => p.name === "Sample Active");
     expect(active?.updated).toBe("2026-05-01");
-    expect(active?.lastReviewed).toBe("2026-04-15");
+    expect(active?.last_reviewed).toBe("2026-04-15");
     expect(active?.due).toBe("2026-06-30");
     expect(active?.daysSinceUpdate).toBe(45);
   });
@@ -57,7 +57,7 @@ describe("findProjects", () => {
     const projects = await findProjects(FIXTURE, DEFAULT_CONFIG);
     const bare = projects.find((p) => p.name === "Bare Project");
     expect(bare?.updated).toBeUndefined();
-    expect(bare?.lastReviewed).toBeUndefined();
+    expect(bare?.last_reviewed).toBeUndefined();
     expect(bare?.daysSinceUpdate).toBeUndefined();
   });
 
@@ -248,10 +248,10 @@ describe("findProjects", () => {
     expect(desc[desc.length - 1]?.name).toBe("Bare Project");
   });
 
-  it("sorts by due and lastReviewed", async () => {
+  it("sorts by due and last_reviewed", async () => {
     const byDue = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "due" });
     expect(byDue[0]?.name).toBe("Sample Active");
-    const byReviewed = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "lastReviewed" });
+    const byReviewed = await findProjects(FIXTURE, DEFAULT_CONFIG, { sort: "last_reviewed" });
     expect(byReviewed[0]?.name).toBe("Sample Active");
   });
 

@@ -49,7 +49,7 @@ describe("findProjectTool", () => {
     expect(projects.map((p: { name: string }) => p.name)).toEqual(["Sample Waiting"]);
   });
 
-  it("translates last_reviewed sort token to the vault's lastReviewed key", async () => {
+  it("plumbs last_reviewed sort key through to the vault layer", async () => {
     const result = await findProjectTool.handler(
       { sort: "last_reviewed" },
       FIXTURE,
