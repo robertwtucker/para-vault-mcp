@@ -120,7 +120,7 @@ tags: [...]
 ---
 ```
 
-`find_project` returns every project in `1-Projects/` by default — vocabulary on `status` is yours, not the tool's. Pass `status: "active"` (or whatever you use) to filter. When `next-action` is absent from frontmatter, `next_action` falls back to the first unchecked `- [ ] ...` task in the body. Date fields are read whether written quoted (`updated: "2026-06-10"`), as bare YAML dates (`updated: 2026-06-10`), or as full timestamps with offsets (`updated: 2026-06-10T20:00:00-08:00`) — `find_project` always reports the user's calendar date. Frontmatter date values that don't parse (e.g. `2026-13-45`) surface in the per-project `dateErrors` array on the response so the caller can flag them rather than silently dropping the project from staleness filters.
+`find_project` returns every project in `1-Projects/` by default — vocabulary on `status` is yours, not the tool's. Pass `status: "active"` (or whatever you use) to filter. When `next-action` is absent from frontmatter, `next_action` falls back to the first unchecked `- [ ] ...` task in the body. Date fields are read whether written quoted (`updated: "2026-06-10"`), as bare YAML dates (`updated: 2026-06-10`), or as full timestamps with offsets (`updated: 2026-06-10T20:00:00-08:00`) — `find_project` reports the user's calendar date rather than UTC-slicing the parsed instant. Frontmatter date values that don't parse (e.g. `2026-13-45`) surface in the per-project `dateErrors` array on the response so the caller can flag them, rather than silently rolling over to a different date via JavaScript's `Date` constructor.
 
 ### Customizing conventions
 

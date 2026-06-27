@@ -15,7 +15,8 @@ v0.4 makes failures fail loudly. v0.3 left a handful of silent failure modes —
 
 - `ci.yml` test job declares an explicit `permissions: contents: read` block; the implicit broad `GITHUB_TOKEN` is no longer inherited (#22).
 - `pnpm/action-setup` (the only third-party action) is pinned to a commit SHA in both `ci.yml` and `release.yml`; Dependabot's `github-actions` ecosystem keeps the SHA current (#23).
-- CodeQL static analysis enabled for `javascript-typescript` and `actions` query packs, scheduled weekly (catches workflow misconfiguration that linters miss).
+- CodeQL static analysis enabled for the `javascript-typescript` and `actions` language packs, using the `security-and-quality` query suite, scheduled weekly (catches workflow misconfiguration that linters miss).
+- Replaced the unmaintained `gray-matter` (pinned `js-yaml@^3.13.1`) with `@11ty/gray-matter` (`js-yaml@^4.2.0`), clearing GHSA-h67p-54hq-rp68 (quadratic-complexity DoS in js-yaml v3 via repeated YAML merge keys).
 
 ### Fixed
 
@@ -28,7 +29,7 @@ v0.4 makes failures fail loudly. v0.3 left a handful of silent failure modes —
 
 ### Changed
 
-- `find_project` response: `lastReviewed` field renamed to `last_reviewed` to match the YAML field name and the snake_case MCP API convention; the internal `SORT_KEY_MAP` indirection is gone (#20). Adding a new sort key now requires touching two places, not four.
+- **Breaking:** `find_project` response: `lastReviewed` field renamed to `last_reviewed` to match the YAML field name and the snake_case MCP API convention. Clients reading the response by field name will need to update; sort token (the public API the response field name didn't appear in) was already `last_reviewed`. The internal `SORT_KEY_MAP` indirection is gone (#20) — adding a new identity-mapped (non-date) sort key now requires only the Zod enum and `ProjectSortKey` union, not the prior four parallel touch sites.
 - `find_project` response: new `dateErrors?: Array<{field, value}>` field carrying per-field date-parse failures.
 - `find_project` tool description and parameter `.describe()` strings refreshed to reflect post-#18 exclusion criteria and the expanded `area:` normalization surface.
 

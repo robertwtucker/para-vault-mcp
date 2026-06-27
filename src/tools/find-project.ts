@@ -61,7 +61,7 @@ const inputObjectSchema = z.object(findProjectInputSchema);
 export const findProjectTool = {
   name: "find_project" as const,
   description:
-    "List PARA projects under 1-Projects/ with optional filtering, sorting, and a limit. Filters: query (name fragment or '#tag'), status, area, stale_days, updated_since. Returns name, path, hasProjectFile, status, area, goal, nextAction, tags, due, updated, last_reviewed, and daysSinceUpdate for each project. Per-project parse failures surface in `frontmatterError` (whole-file YAML invalid) or `dateErrors` (date values that didn't validate, e.g. `updated: 2026-13-45`) — projects with errors still appear in results so callers can flag the issue to the user.",
+    "List PARA projects under 1-Projects/ with optional filtering, sorting, and a limit. Filters: query (name fragment or '#tag'), status, area, stale_days, updated_since. Returns name, path, hasProjectFile, status, area, goal, nextAction, tags, due, updated, last_reviewed, and daysSinceUpdate for each project. Per-project parse failures surface in `frontmatterError` (whole-file YAML invalid) or `dateErrors` (date values that didn't validate, e.g. `updated: 2026-13-45`). Projects with errors still appear in unfiltered results so callers can flag the issue; the `stale_days` and `updated_since` filters do exclude projects whose `updated:` value is invalid, since there's no meaningful date to compare.",
   inputSchema: findProjectInputSchema,
   async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, config: VaultConfig) {
     const projects = await findProjects(vaultPath, config, {
