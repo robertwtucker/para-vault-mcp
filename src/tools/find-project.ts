@@ -3,15 +3,8 @@
  * SPDX-License-Identifier: MIT
  */
 import { z } from "zod";
-import { findProjects, type ProjectSortKey } from "../vault/projects.js";
+import { findProjects } from "../vault/projects.js";
 import type { VaultConfig } from "../vault/config.js";
-
-const SORT_KEY_MAP: Record<string, ProjectSortKey> = {
-  name: "name",
-  updated: "updated",
-  last_reviewed: "lastReviewed",
-  due: "due",
-};
 
 export const findProjectInputSchema = {
   query: z
@@ -68,7 +61,7 @@ const inputObjectSchema = z.object(findProjectInputSchema);
 export const findProjectTool = {
   name: "find_project" as const,
   description:
-    "List PARA projects under 1-Projects/ with optional filtering, sorting, and a limit. Filters: query (name fragment or '#tag'), status, area, stale_days, updated_since. Returns name, path, status, next action, tags, due, area, updated, lastReviewed, and daysSinceUpdate for each project.",
+    "List PARA projects under 1-Projects/ with optional filtering, sorting, and a limit. Filters: query (name fragment or '#tag'), status, area, stale_days, updated_since. Returns name, path, status, next action, tags, due, area, updated, last_reviewed, and daysSinceUpdate for each project.",
   inputSchema: findProjectInputSchema,
   async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, config: VaultConfig) {
     const projects = await findProjects(vaultPath, config, {
@@ -77,7 +70,7 @@ export const findProjectTool = {
       area: args.area,
       staleDays: args.stale_days,
       updatedSince: args.updated_since,
-      sort: args.sort ? SORT_KEY_MAP[args.sort] : undefined,
+      sort: args.sort,
       order: args.order,
       limit: args.limit,
     });
