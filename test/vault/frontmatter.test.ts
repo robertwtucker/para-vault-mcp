@@ -41,4 +41,16 @@ describe("parseFrontmatter", () => {
     const result = parseFrontmatter("# Just a body");
     expect(result.rawFrontmatter).toBe("");
   });
+
+  it("rawFrontmatter is stable across repeated parses of the same content", () => {
+    // @11ty/gray-matter caches the parsed object by content string and returns
+    // Object.assign({}, cached) on hit, which strips its own non-enumerable
+    // `matter` property. parseFrontmatter must not regress to reading
+    // parsed.matter directly — repeated parses must yield identical rawFrontmatter.
+    const input = `---\nupdated: 2026-05-01\n---\n\nBody`;
+    const first = parseFrontmatter(input);
+    const second = parseFrontmatter(input);
+    expect(second.rawFrontmatter).toBe(first.rawFrontmatter);
+    expect(second.rawFrontmatter).toContain("updated: 2026-05-01");
+  });
 });
