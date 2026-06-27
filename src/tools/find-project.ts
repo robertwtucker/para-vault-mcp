@@ -76,7 +76,10 @@ export const findProjectTool = {
     });
     return {
       content: [
-        { type: "text" as const, text: JSON.stringify(projects, null, 2) },
+        {
+          type: "text" as const,
+          text: JSON.stringify(projects, (key, value) => (key.startsWith("_") ? undefined : value), 2),
+        },
       ],
     };
   },

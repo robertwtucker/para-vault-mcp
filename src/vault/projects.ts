@@ -29,6 +29,9 @@ export interface ProjectSummary {
   tags: string[];
   frontmatterError?: string;
   dateErrors?: DateError[];
+  _updatedDate?: Date;
+  _dueDate?: Date;
+  _lastReviewedDate?: Date;
 }
 
 export type ProjectSortKey = "name" | "updated" | "last_reviewed" | "due";
@@ -69,8 +72,7 @@ export async function findProjects(
     if (areaFilter !== undefined && (p.area === undefined || normalizeArea(p.area) !== areaFilter)) return false;
     if (options.staleDays !== undefined && (p.daysSinceUpdate === undefined || p.daysSinceUpdate < options.staleDays)) return false;
     if (updatedSinceDate !== undefined) {
-      const updatedDate = parseDateString(p.updated);
-      if (updatedDate === undefined || updatedDate < updatedSinceDate) return false;
+      if (p._updatedDate === undefined || p._updatedDate < updatedSinceDate) return false;
     }
     return true;
   });
@@ -134,10 +136,9 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
   }
   const { data, error, rawFrontmatter } = parseFrontmatter(raw);
   const dateErrors: DateError[] = [];
-  const updated = readDateField(data, "updated", rawFrontmatter, dateErrors);
-  const due = readDateField(data, "due", rawFrontmatter, dateErrors);
-  const last_reviewed = readDateField(data, "last-reviewed", rawFrontmatter, dateErrors);
-  const updatedDate = parseDateString(updated);
+  const updatedParsed = readDateField(data, "updated", rawFrontmatter, dateErrors);
+  const dueParsed = readDateField(data, "due", rawFrontmatter, dateErrors);
+  const lastReviewedParsed = readDateField(data, "last-reviewed", rawFrontmatter, dateErrors);
   return {
     name: dir,
     path: projectPath,
@@ -146,14 +147,22 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
     goal: typeof data.goal === "string" ? data.goal : undefined,
     area: extractAreaString(data.area),
     nextAction: typeof data["next-action"] === "string" ? data["next-action"] : undefined,
-    due,
-    updated,
-    last_reviewed,
-    daysSinceUpdate: updatedDate ? differenceInCalendarDays(now, updatedDate) : undefined,
+    due: dueParsed?.display,
+    updated: updatedParsed?.display,
+    last_reviewed: lastReviewedParsed?.display,
+    daysSinceUpdate: updatedParsed?.date ? differenceInCalendarDays(now, updatedParsed.date) : undefined,
     tags: Array.isArray(data.tags) ? data.tags.filter((t): t is string => typeof t === "string") : [],
     frontmatterError: error,
     dateErrors: dateErrors.length > 0 ? dateErrors : undefined,
+    _updatedDate: updatedParsed?.date,
+    _dueDate: dueParsed?.date,
+    _lastReviewedDate: lastReviewedParsed?.date,
   };
+}
+
+interface ParsedDateField {
+  display: string;
+  date?: Date;
 }
 
 function readDateField(
@@ -161,7 +170,7 @@ function readDateField(
   key: string,
   rawFrontmatter: string,
   dateErrors: DateError[],
-): string | undefined {
+): ParsedDateField | undefined {
   const value = data[key];
   if (value === undefined) return undefined;
   const rawScalar = rawScalarForKey(rawFrontmatter, key);
@@ -169,15 +178,21 @@ function readDateField(
     const cleaned = stripYamlQuotes(rawScalar.trim());
     if (/^\d{4}-\d{2}-\d{2}/.test(cleaned)) {
       const datePart = cleaned.slice(0, 10);
-      if (parseDateString(datePart) === undefined) {
+      const date = parseDateString(datePart);
+      if (date === undefined) {
         dateErrors.push({ field: key, value: cleaned });
         return undefined;
       }
-      return datePart;
+      return { display: datePart, date };
     }
   }
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
-  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  if (value instanceof Date) {
+    return { display: value.toISOString().slice(0, 10), date: value };
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const trimmed = value.trim();
+    return { display: trimmed, date: parseDateString(trimmed) };
+  }
   return undefined;
 }
 
