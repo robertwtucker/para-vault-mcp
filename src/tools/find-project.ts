@@ -23,7 +23,7 @@ export const findProjectInputSchema = {
     .string()
     .optional()
     .describe(
-      "Match on the project's `area:` frontmatter. Normalized before comparison (strips Obsidian [[wikilink]] brackets, trims, lowercases), then exact match.",
+      "Match on the project's `area:` frontmatter. Every common shape — bare string, quoted string, and [[wikilink]] in all variants including aliases (`[[Target|Alias]]`) and path targets (`[[Areas/Health]]`) — normalizes to one canonical form before exact-match comparison (case-insensitive).",
     ),
   stale_days: z
     .number()
@@ -31,14 +31,14 @@ export const findProjectInputSchema = {
     .nonnegative()
     .optional()
     .describe(
-      "Include only projects whose `updated:` date is at least N calendar days ago. Excludes projects without an `updated:` field.",
+      "Include only projects whose `updated:` date is at least N calendar days ago. Excludes projects with no `updated:` field AND projects whose `updated:` value didn't parse (see `dateErrors` in the response).",
     ),
   updated_since: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
     .describe(
-      "Include only projects whose `updated:` date is on or after this YYYY-MM-DD. Excludes projects without an `updated:` field.",
+      "Include only projects whose `updated:` date is on or after this YYYY-MM-DD. Excludes projects with no `updated:` field AND projects whose `updated:` value didn't parse (see `dateErrors` in the response).",
     ),
   sort: z
     .enum(["name", "updated", "last_reviewed", "due"])
@@ -61,7 +61,7 @@ const inputObjectSchema = z.object(findProjectInputSchema);
 export const findProjectTool = {
   name: "find_project" as const,
   description:
-    "List PARA projects under 1-Projects/ with optional filtering, sorting, and a limit. Filters: query (name fragment or '#tag'), status, area, stale_days, updated_since. Returns name, path, status, next action, tags, due, area, updated, last_reviewed, and daysSinceUpdate for each project.",
+    "List PARA projects under 1-Projects/ with optional filtering, sorting, and a limit. Filters: query (name fragment or '#tag'), status, area, stale_days, updated_since. Returns name, path, hasProjectFile, status, area, goal, nextAction, tags, due, updated, last_reviewed, and daysSinceUpdate for each project. Per-project parse failures surface in `frontmatterError` (whole-file YAML invalid) or `dateErrors` (date values that didn't validate, e.g. `updated: 2026-13-45`) — projects with errors still appear in results so callers can flag the issue to the user.",
   inputSchema: findProjectInputSchema,
   async handler(args: z.infer<typeof inputObjectSchema>, vaultPath: string, config: VaultConfig) {
     const projects = await findProjects(vaultPath, config, {
