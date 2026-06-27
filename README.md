@@ -6,7 +6,7 @@ Section names and PARA folder paths are configurable via `_system/PARA-conventio
 
 ## Status
 
-v0.3 — five tools, MIT-licensed, published on npm as `@robertwtucker/para-vault-mcp`. v0.3 makes review workflows direct: `find_project` supports filtering, sorting, and a limit so a daily or weekly review can ask for "oldest-stale active projects, top 5" in one call, and `daily_review_status` returns the inbox-item list and the prior daily note's path alongside the existing state signals. Roadmap tracked openly in [GitHub Issues](https://github.com/robertwtucker/para-vault-mcp/issues).
+v0.4 — five tools, MIT-licensed, published on npm as `@robertwtucker/para-vault-mcp`. The review-shaped tool design from v0.3 (filtering, sorting, and limits on `find_project`; rich state in `daily_review_status`) now sits on a v0.4 foundation that makes failures fail loudly: typoed dates surface in a new `dateErrors` response field instead of returning `[]`, every Obsidian wikilink shape for `area:` (including aliases and path targets) resolves to the same canonical form, frontmatter dates preserve the user's calendar date across timezones, and CodeQL guards the CI. Roadmap tracked openly in [GitHub Issues](https://github.com/robertwtucker/para-vault-mcp/issues).
 
 ## Tools
 
@@ -112,7 +112,7 @@ The defaults below match the maintainer's vault. Vaults with different folder na
 type: project
 status: active # find_project's `status` filter does case-insensitive equality match
 next-action: "..." # next_action returns this if present
-area: "..." # find_project's `area` filter normalizes brackets/quoting/case before exact match
+area: "..." # find_project's `area` filter normalizes every Obsidian wikilink shape (incl. aliases and path targets) before exact match
 updated: 2026-06-10 # find_project sorts and filters by staleness against this
 last-reviewed: 2026-06-10 # find_project can sort by this
 due: 2026-07-08 # find_project can sort by this
@@ -120,7 +120,7 @@ tags: [...]
 ---
 ```
 
-`find_project` returns every project in `1-Projects/` by default — vocabulary on `status` is yours, not the tool's. Pass `status: "active"` (or whatever you use) to filter. When `next-action` is absent from frontmatter, `next_action` falls back to the first unchecked `- [ ] ...` task in the body. Date fields are read whether written quoted (`updated: "2026-06-10"`) or as bare YAML dates (`updated: 2026-06-10`).
+`find_project` returns every project in `1-Projects/` by default — vocabulary on `status` is yours, not the tool's. Pass `status: "active"` (or whatever you use) to filter. When `next-action` is absent from frontmatter, `next_action` falls back to the first unchecked `- [ ] ...` task in the body. Date fields are read whether written quoted (`updated: "2026-06-10"`), as bare YAML dates (`updated: 2026-06-10`), or as full timestamps with offsets (`updated: 2026-06-10T20:00:00-08:00`) — `find_project` always reports the user's calendar date. Frontmatter date values that don't parse (e.g. `2026-13-45`) surface in the per-project `dateErrors` array on the response so the caller can flag them rather than silently dropping the project from staleness filters.
 
 ### Customizing conventions
 
