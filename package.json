@@ -45,7 +45,7 @@
     "@11ty/gray-matter": "^2.1.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "date-fns": "^3.6.0",
-    "globby": "^14.0.2",
+    "globby": "^16.2.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
