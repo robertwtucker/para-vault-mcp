@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@11ty/gray-matter": "^2.1.0",
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "date-fns": "^4.4.0",
     "globby": "^16.2.0",
     "zod": "^4.4.3"
