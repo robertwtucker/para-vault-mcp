@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- `@modelcontextprotocol/sdk` pin tightened from `^1.0.0` to `^1.30.0`, picking up the SDK's widened `@hono/node-server` range and closing GHSA-frvp-7c67-39w9 (path traversal in `serve-static` on Windows via encoded backslash).
+
+### Changed
+
+- **Dependency baseline modernized.** Runtime: `zod` 3.25 → 4.4 (#32), `date-fns` 3.6 → 4.4 (#33), `globby` 14 → 16 (#31). Dev: `typescript` 5.9 → 6.0 (#35), `@types/node` 20 → 26 (#34), `github/codeql-action` v3 → v4 (#30). No tool-facing API changes; 101/101 tests, typecheck, and `pnpm audit` remain clean on the combined stack. The `pnpm.overrides` block (hono, qs, vite) has been removed — natural upstream resolution now picks safe versions across the whole tree (vitest 4 permits vite 8 as a peer), and the pins had become dead weight constraining future updates.
+
 ## [0.4.0] - 2026-06-26
 
 v0.4 makes failures fail loudly. v0.3 left a handful of silent failure modes — a typoed `updated:` value silently skewed sort and staleness filters; a wikilink alias didn't match `area:` queries despite literally naming the area; a timestamp with a TZ offset got UTC-sliced into a different calendar date. v0.4 makes each one either correct or loud: bad YAML no longer parses as good YAML, typos surface in a new `dateErrors` field instead of returning `[]`, every Obsidian wikilink shape collapses to one canonical form, and CodeQL is on for workflow hardening. The `find_project` hot path now caches parsed dates and the `daily_review_status` opener parallelizes its independent I/O — bonuses inside the same theme.
