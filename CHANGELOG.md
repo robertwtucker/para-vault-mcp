@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Dependency baseline modernized.** Runtime: `zod` 3.25 → 4.4 (#32), `date-fns` 3.6 → 4.4 (#33), `globby` 14 → 16 (#31). Dev: `typescript` 5.9 → 6.0 (#35), `@types/node` 20 → 26 (#34), `github/codeql-action` v3 → v4 (#30). No tool-facing API changes; 101/101 tests, typecheck, and `pnpm audit` remain clean on the combined stack. The `pnpm.overrides` block (hono, qs, vite) has been removed — natural upstream resolution now picks safe versions across the whole tree (vitest 4 permits vite 8 as a peer), and the pins had become dead weight constraining future updates.
+- **Dev tooling and CI: next-major sweep.** Dev: `typescript` 6.0 → 7.0 (#37). CI: `actions/setup-node` v6 → v7 (#36; the only substantive v7 change is an ESM migration, transparent on Node ≥20 runners), `github/codeql-action` pinned from floating `v4` to `v4.37.3` (#38). Typecheck and tests remain green across Node 20/22/24; no tool-facing changes.
 
 ## [0.4.0] - 2026-06-26
 
