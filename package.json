@@ -24,9 +24,9 @@
     "prepublishOnly": "pnpm run build"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@11.18.0",
   "license": "MIT",
   "author": "Robert Tucker <robertwtucker@gmail.com>",
   "homepage": "https://github.com/robertwtucker/para-vault-mcp",
@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@11ty/gray-matter": "^2.1.0",
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "date-fns": "^4.4.0",
     "globby": "^16.2.0",
     "zod": "^4.4.3"
