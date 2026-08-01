@@ -59,4 +59,44 @@ describe("dailyReviewStatusTool", () => {
     expect(status.inboxItems[0]).toHaveProperty("path");
     expect(status.previousDailyNotePath).toBe("0-Inbox/Daily/2020-01-01.md");
   });
+
+  it("returns dailyNoteBody through the tool layer when include_body=true", async () => {
+    await ensureDailyNote(vault.path, new Date(), DEFAULT_CONFIG);
+    const result = await dailyReviewStatusTool.handler(
+      { include_body: true },
+      vault.path,
+      DEFAULT_CONFIG,
+    );
+    const status = JSON.parse(result.content[0]!.text);
+    expect(status.dailyNoteBody).toBeDefined();
+    expect(typeof status.dailyNoteBody.content).toBe("string");
+    expect(status.dailyNoteBody.truncated).toBe(false);
+    expect(typeof status.dailyNoteBody.totalBytes).toBe("number");
+  });
+
+  it("returns previousDailyNoteBody through the tool layer when include_previous_body=true", async () => {
+    await ensureDailyNote(vault.path, new Date(), DEFAULT_CONFIG);
+    const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
+    writeFileSync(path.join(daily, "2020-01-01.md"), "old daily");
+    const result = await dailyReviewStatusTool.handler(
+      { include_previous_body: true },
+      vault.path,
+      DEFAULT_CONFIG,
+    );
+    const status = JSON.parse(result.content[0]!.text);
+    expect(status.previousDailyNoteBody?.content).toBe("old daily");
+  });
+
+  it("omits both body fields when neither param is set (backward-compat)", async () => {
+    await ensureDailyNote(vault.path, new Date(), DEFAULT_CONFIG);
+    const result = await dailyReviewStatusTool.handler({}, vault.path, DEFAULT_CONFIG);
+    const status = JSON.parse(result.content[0]!.text);
+    expect(status.dailyNoteBody).toBeUndefined();
+    expect(status.previousDailyNoteBody).toBeUndefined();
+  });
+
+  it("description advertises the new include_body and include_previous_body params", () => {
+    expect(dailyReviewStatusTool.description).toMatch(/include_body/);
+    expect(dailyReviewStatusTool.description).toMatch(/include_previous_body/);
+  });
 });
