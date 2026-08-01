@@ -262,3 +262,106 @@ describe("prependToSectionList", () => {
     expect(captures).toContain("- newest");
   });
 });
+
+import { buildBodyEnvelope, readBodyBounded, BODY_MAX_BYTES } from "../../src/vault/daily.js";
+
+describe("buildBodyEnvelope", () => {
+  it("returns content as-is when under the limit", () => {
+    const env = buildBodyEnvelope("hello", 100);
+    expect(env).toEqual({ content: "hello", truncated: false, totalBytes: 5 });
+  });
+
+  it("returns content as-is at exactly the limit", () => {
+    const s = "a".repeat(128);
+    const env = buildBodyEnvelope(s, 128);
+    expect(env).toEqual({ content: s, truncated: true, totalBytes: 128 });
+    // At exact limit, we consider it truncated: consumer can't distinguish
+    // "exactly the limit" from "one byte more, cut at the limit". Being
+    // loud is the v0.4 discipline; being conservative here matches that.
+  });
+
+  it("truncates when over the limit", () => {
+    const s = "a".repeat(200);
+    const env = buildBodyEnvelope(s, 128);
+    expect(env.content.length).toBe(128);
+    expect(env.truncated).toBe(true);
+    expect(env.totalBytes).toBe(200);
+  });
+
+  it("does not split a multi-byte UTF-8 code point at the boundary", () => {
+    // 127 ASCII bytes + one 4-byte code point (😀 = U+1F600) spans byte 127..130.
+    // Cut at 128: the boundary lands inside the code point. Safe cut backs
+    // off to byte 127, dropping the partial code point entirely.
+    const emoji = "\u{1F600}"; // 4 UTF-8 bytes
+    const content = "a".repeat(127) + emoji;
+    // Encoded byte length: 127 + 4 = 131
+    const totalBytes = Buffer.byteLength(content, "utf8");
+    expect(totalBytes).toBe(131);
+    const env = buildBodyEnvelope(content, 128);
+    expect(env.truncated).toBe(true);
+    expect(env.totalBytes).toBe(131);
+    // The emoji is dropped entirely; content is the 127 leading 'a's.
+    expect(env.content).toBe("a".repeat(127));
+    // And critically, the returned content is valid UTF-8 (implicit — it's
+    // a JS string, but we assert length in bytes to make the intent explicit).
+    expect(Buffer.byteLength(env.content, "utf8")).toBeLessThanOrEqual(128);
+  });
+
+  it("handles empty content", () => {
+    expect(buildBodyEnvelope("", 128)).toEqual({ content: "", truncated: false, totalBytes: 0 });
+  });
+});
+
+describe("readBodyBounded", () => {
+  let vault: { path: string; cleanup: () => void };
+  beforeEach(() => (vault = makeTmpVault()));
+  afterEach(() => vault.cleanup());
+
+  it("returns undefined for a missing file", async () => {
+    const missing = path.join(vault.path, "does-not-exist.md");
+    expect(await readBodyBounded(missing, BODY_MAX_BYTES)).toBeUndefined();
+  });
+
+  it("returns envelope for an empty file", async () => {
+    const empty = path.join(vault.path, "empty.md");
+    writeFileSync(empty, "");
+    expect(await readBodyBounded(empty, BODY_MAX_BYTES)).toEqual({
+      content: "",
+      truncated: false,
+      totalBytes: 0,
+    });
+  });
+
+  it("returns full content for a small file", async () => {
+    const small = path.join(vault.path, "small.md");
+    writeFileSync(small, "hello world");
+    expect(await readBodyBounded(small, BODY_MAX_BYTES)).toEqual({
+      content: "hello world",
+      truncated: false,
+      totalBytes: 11,
+    });
+  });
+
+  it("truncates a file that exceeds the limit", async () => {
+    const big = path.join(vault.path, "big.md");
+    const content = "a".repeat(200 * 1024); // 200 KB
+    writeFileSync(big, content);
+    const env = await readBodyBounded(big, BODY_MAX_BYTES);
+    expect(env).toBeDefined();
+    expect(env!.truncated).toBe(true);
+    expect(env!.totalBytes).toBe(200 * 1024);
+    expect(env!.content.length).toBe(BODY_MAX_BYTES);
+  });
+
+  it("does not split a multi-byte UTF-8 code point at the boundary", async () => {
+    const boundary = path.join(vault.path, "boundary.md");
+    // (BODY_MAX_BYTES - 1) ASCII bytes + one 4-byte emoji straddles the boundary.
+    const emoji = "\u{1F600}";
+    const content = "a".repeat(BODY_MAX_BYTES - 1) + emoji;
+    writeFileSync(boundary, content);
+    const env = await readBodyBounded(boundary, BODY_MAX_BYTES);
+    expect(env!.truncated).toBe(true);
+    expect(env!.content.length).toBe(BODY_MAX_BYTES - 1);
+    expect(Buffer.byteLength(env!.content, "utf8")).toBe(BODY_MAX_BYTES - 1);
+  });
+});

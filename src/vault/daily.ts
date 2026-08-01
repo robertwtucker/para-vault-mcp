@@ -3,9 +3,91 @@
  * SPDX-License-Identifier: MIT
  */
 import { format } from "date-fns";
-import { readFile, writeFile, rename, mkdir, stat, readdir } from "node:fs/promises";
+import { readFile, writeFile, rename, mkdir, stat, readdir, open } from "node:fs/promises";
 import path from "node:path";
 import type { VaultConfig } from "./config.js";
+
+export const BODY_MAX_BYTES = 128 * 1024;
+
+export interface BodyEnvelope {
+  content: string;
+  truncated: boolean;
+  totalBytes: number;
+  error?: string;
+}
+
+export function buildBodyEnvelope(content: string, maxBytes: number): BodyEnvelope {
+  const totalBytes = Buffer.byteLength(content, "utf8");
+  if (totalBytes < maxBytes) {
+    return { content, truncated: false, totalBytes };
+  }
+  // Encode, cut, back off to last complete UTF-8 code point boundary.
+  const encoded = Buffer.from(content, "utf8");
+  let cutAt = Math.min(maxBytes, encoded.length);
+  // Back off while the byte at cutAt-1 is a UTF-8 continuation byte (10xxxxxx)
+  // AND the leading byte of the code point at cutAt was itself cut.
+  // Simplest correct approach: back off any trailing bytes that form an
+  // incomplete code point at the boundary. A UTF-8 lead byte is 0xxxxxxx (1B),
+  // 110xxxxx (2B), 1110xxxx (3B), or 11110xxx (4B). Continuation bytes are
+  // 10xxxxxx. If cutAt lands inside a multi-byte sequence, back off to the
+  // preceding lead byte and drop that lead too.
+  while (cutAt > 0 && (encoded[cutAt - 1]! & 0xc0) === 0x80) {
+    // trailing byte is a continuation; back off
+    cutAt--;
+  }
+  // Now cutAt-1 is either an ASCII byte (0xxxxxxx) or a lead byte (11xxxxxx).
+  // If it's a lead byte, the code point is incomplete — drop it too.
+  if (cutAt > 0 && (encoded[cutAt - 1]! & 0x80) === 0x80) {
+    // top bit set AND we didn't back off past it, so this is a lead byte
+    cutAt--;
+  }
+  const safeContent = encoded.subarray(0, cutAt).toString("utf8");
+  return { content: safeContent, truncated: true, totalBytes };
+}
+
+export async function readBodyBounded(
+  filePath: string,
+  maxBytes: number,
+): Promise<BodyEnvelope | undefined> {
+  let size: number;
+  try {
+    ({ size } = await stat(filePath));
+  } catch {
+    return undefined;
+  }
+  if (size <= maxBytes) {
+    try {
+      const content = await readFile(filePath, "utf8");
+      return { content, truncated: false, totalBytes: size };
+    } catch (e) {
+      return {
+        content: "",
+        truncated: false,
+        totalBytes: 0,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  }
+  // Bounded read for oversized file
+  try {
+    const fh = await open(filePath, "r");
+    try {
+      const buf = Buffer.alloc(maxBytes);
+      await fh.read(buf, 0, maxBytes, 0);
+      const safeContent = buildBodyEnvelope(buf.toString("utf8"), maxBytes).content;
+      return { content: safeContent, truncated: true, totalBytes: size };
+    } finally {
+      await fh.close();
+    }
+  } catch (e) {
+    return {
+      content: "",
+      truncated: false,
+      totalBytes: 0,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
 
 const fileLocks = new Map<string, Promise<unknown>>();
 
