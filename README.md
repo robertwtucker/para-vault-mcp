@@ -71,8 +71,8 @@ pnpm run build
 
 ### Requirements
 
-- Node.js ≥ 20
-- pnpm 10.x (the repo pins to 10.33.0 for contributor reproducibility)
+- Node.js ≥ 22
+- pnpm 11.x (the repo pins to 11.18.0 for contributor reproducibility)
 - An Obsidian vault following the structure below
 
 ## Configuration
