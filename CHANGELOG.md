@@ -11,10 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `@modelcontextprotocol/sdk` pin tightened from `^1.0.0` to `^1.30.0`, picking up the SDK's widened `@hono/node-server` range and closing GHSA-frvp-7c67-39w9 (path traversal in `serve-static` on Windows via encoded backslash).
 
+### Added
+
+- **`daily_review_status`: `include_body` / `include_previous_body`** — opt in to receive today's on-disk daily-note body (and/or the previous note's) directly in the tool response, under new `dailyNoteBody` / `previousDailyNoteBody` fields carrying `{content, truncated, totalBytes}`. Fresh read at call time — no caching, so successive calls reflect live edits, closing the "reviewer trusts a stale in-context copy" failure mode surfaced during 2026-07-08 dogfooding. Truncation is a hard 128 KB cap with UTF-8-safe backoff; `truncated: true` surfaces the cut explicitly rather than silently trimming.
+
 ### Changed
 
 - **Dependency baseline modernized.** Runtime: `zod` 3.25 → 4.4 (#32), `date-fns` 3.6 → 4.4 (#33), `globby` 14 → 16 (#31). Dev: `typescript` 5.9 → 6.0 (#35), `@types/node` 20 → 26 (#34), `github/codeql-action` v3 → v4 (#30). No tool-facing API changes; 101/101 tests, typecheck, and `pnpm audit` remain clean on the combined stack. The `pnpm.overrides` block (hono, qs, vite) has been removed — natural upstream resolution now picks safe versions across the whole tree (vitest 4 permits vite 8 as a peer), and the pins had become dead weight constraining future updates.
 - **Dev tooling and CI: next-major sweep.** Dev: `typescript` 6.0 → 7.0 (#37). CI: `actions/setup-node` v6 → v7 (#36; the only substantive v7 change is an ESM migration, transparent on Node ≥20 runners), `github/codeql-action` pinned from floating `v4` to `v4.37.3` (#38). Typecheck and tests remain green across Node 20/22/24; no tool-facing changes.
+- **Breaking:** minimum Node bumped from `>=20` to `>=22`. CI matrix `[20, 22, 24]` → `[22, 24, 26]`. Release workflow's publish job now runs on Node 22 (long-tail LTS). Users still on Node 20 will see an engines mismatch on install — Node 20 has exited active LTS; the pre-1.0 semver posture makes this legitimate in a minor.
+- pnpm bumped `10.33.0` → `11.18.0`. Dev-only; no user impact.
+- MCP SDK migrated from `@modelcontextprotocol/sdk@^1.30.0` to the v2 scoped-package layout via `@modelcontextprotocol/codemod`. Tool contracts unchanged; response shapes unchanged. See `docs/design/2026-08-01-sdk-v2-investigation.md` for the migration receipt.
 
 ## [0.4.0] - 2026-06-26
 
