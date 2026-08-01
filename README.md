@@ -6,7 +6,7 @@ Section names and PARA folder paths are configurable via `_system/PARA-conventio
 
 ## Status
 
-v0.4 — five tools, MIT-licensed, published on npm as `@robertwtucker/para-vault-mcp`. The review-shaped tool design from v0.3 (filtering, sorting, and limits on `find_project`; rich state in `daily_review_status`) now sits on a v0.4 foundation that makes failures fail loudly: typoed dates surface in a new `dateErrors` response field instead of returning `[]`, every Obsidian wikilink shape for `area:` (including aliases and path targets) resolves to the same canonical form, frontmatter dates preserve the user's calendar date across timezones, and CodeQL guards the CI. Roadmap tracked openly in [GitHub Issues](https://github.com/robertwtucker/para-vault-mcp/issues).
+Five tools, MIT-licensed, published on npm as `@robertwtucker/para-vault-mcp`. See the [CHANGELOG](CHANGELOG.md) for what shipped in the current release, and [GitHub Issues](https://github.com/robertwtucker/para-vault-mcp/issues) for the roadmap.
 
 ## Tools
 
@@ -143,7 +143,7 @@ Any unspecified key keeps its default. Folder paths must resolve inside the vaul
 
 ```sh
 pnpm install         # install dependencies (lockfile-strict)
-pnpm test            # run the full test suite (91 tests as of v0.3)
+pnpm test            # run the full test suite
 pnpm run typecheck   # tsc --noEmit
 pnpm run build       # clean + tsc; rebuilds dist/ hermetically
 pnpm run dev         # run from source via tsx (no rebuild required)

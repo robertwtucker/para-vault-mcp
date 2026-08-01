@@ -19,7 +19,7 @@ export interface BuiltServer {
 }
 
 export function buildServer(vaultPath: string, config: VaultConfig): BuiltServer {
-  const mcp = new McpServer({ name: "para-vault-mcp", version: "0.2.0" });
+  const mcp = new McpServer({ name: "para-vault-mcp", version: "0.5.0" });
 
   const tools = [findProjectTool, nextActionTool, captureTool, logWorkTool, dailyReviewStatusTool] as const;
   const handlerMap = new Map<string, ToolHandler>();

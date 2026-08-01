@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-01
+
+v0.5 makes freshness structural. v0.4 made silences loud — the tool refused to return a confident-looking answer that had swallowed an error. v0.5 extends that discipline to a subtler class of wrong answers: stale ones. `daily_review_status` gains opt-in body-return so the daily-review opener hands out live on-disk state instead of pointers, closing the stale-in-context-copy failure mode surfaced during 2026-07 dogfooding. Modernization work (pnpm 11, Node baseline ≥22, SDK v2 folded) rides along under Changed but does not claim the theme — version-currency is a thematic cousin at best.
+
 ### Security
 
 - `@modelcontextprotocol/sdk` pin tightened from `^1.0.0` to `^1.30.0`, picking up the SDK's widened `@hono/node-server` range and closing GHSA-frvp-7c67-39w9 (path traversal in `serve-static` on Windows via encoded backslash).
@@ -103,7 +107,8 @@ Initial release — five tools, MIT-licensed, validated end-to-end against a rea
 - Claude Code and Desktop installation instructions in README.
 - PARA vault conventions documented in README.
 
-[Unreleased]: https://github.com/robertwtucker/para-vault-mcp/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/robertwtucker/para-vault-mcp/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/robertwtucker/para-vault-mcp/releases/tag/v0.5.0
 [0.4.0]: https://github.com/robertwtucker/para-vault-mcp/releases/tag/v0.4.0
 [0.3.0]: https://github.com/robertwtucker/para-vault-mcp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/robertwtucker/para-vault-mcp/releases/tag/v0.2.0
