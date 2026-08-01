@@ -251,23 +251,43 @@ export interface InboxStatus {
   inboxItems: InboxItem[];
   previousDailyNotePath?: string;
   endOfDayChecks?: { label: string; checked: boolean }[];
+  dailyNoteBody?: BodyEnvelope;
+  previousDailyNoteBody?: BodyEnvelope;
 }
 
-export async function inboxStatus(vaultPath: string, date: Date, config: VaultConfig): Promise<InboxStatus> {
+export async function inboxStatus(
+  vaultPath: string,
+  date: Date,
+  config: VaultConfig,
+  options?: { includeBody?: boolean; includePreviousBody?: boolean },
+): Promise<InboxStatus> {
   const file = dailyNotePath(vaultPath, date, config);
   const [content, inboxItems, previousDailyNotePath] = await Promise.all([
     readFile(file, "utf8").catch(() => undefined),
     listInboxItems(vaultPath, config),
     findPreviousDailyNote(vaultPath, date, config),
   ]);
+
+  const includeBody = options?.includeBody === true;
+  const includePreviousBody = options?.includePreviousBody === true;
+
+  const dailyNoteBody =
+    includeBody && content !== undefined ? buildBodyEnvelope(content, BODY_MAX_BYTES) : undefined;
+
+  const previousDailyNoteBody =
+    includePreviousBody && previousDailyNotePath !== undefined
+      ? await readBodyBounded(path.join(vaultPath, previousDailyNotePath), BODY_MAX_BYTES)
+      : undefined;
+
   return {
     dailyNoteExists: content !== undefined,
     inboxItemCount: inboxItems.length,
     inboxItems,
     previousDailyNotePath,
-    endOfDayChecks: content !== undefined
-      ? extractEndOfDayChecks(content, config.endOfDayCheckSection)
-      : undefined,
+    endOfDayChecks:
+      content !== undefined ? extractEndOfDayChecks(content, config.endOfDayCheckSection) : undefined,
+    dailyNoteBody,
+    previousDailyNoteBody,
   };
 }
 

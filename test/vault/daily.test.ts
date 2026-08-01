@@ -202,6 +202,96 @@ describe("inboxStatus", () => {
     const status = await inboxStatus(vault.path, today, DEFAULT_CONFIG);
     expect(status.previousDailyNotePath).toBe("0-Inbox/Daily/2026-05-08.md");
   });
+
+  it("omits dailyNoteBody by default (backward-compat)", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    await ensureDailyNote(vault.path, date, DEFAULT_CONFIG);
+    const status = await inboxStatus(vault.path, date, DEFAULT_CONFIG);
+    expect(status.dailyNoteBody).toBeUndefined();
+    expect(status.previousDailyNoteBody).toBeUndefined();
+  });
+
+  it("returns dailyNoteBody when includeBody=true and the note exists", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    const file = await ensureDailyNote(vault.path, date, DEFAULT_CONFIG);
+    const on_disk = readFileSync(file, "utf8");
+    const status = await inboxStatus(vault.path, date, DEFAULT_CONFIG, { includeBody: true });
+    expect(status.dailyNoteBody).toBeDefined();
+    expect(status.dailyNoteBody!.content).toBe(on_disk);
+    expect(status.dailyNoteBody!.truncated).toBe(false);
+    expect(status.dailyNoteBody!.totalBytes).toBe(Buffer.byteLength(on_disk, "utf8"));
+  });
+
+  it("omits dailyNoteBody when includeBody=true but the note is missing", async () => {
+    const status = await inboxStatus(vault.path, new Date("2026-05-10T12:00:00Z"), DEFAULT_CONFIG, {
+      includeBody: true,
+    });
+    expect(status.dailyNoteExists).toBe(false);
+    expect(status.dailyNoteBody).toBeUndefined();
+  });
+
+  it("returns dailyNoteBody with empty envelope when the note is empty", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    const file = dailyNotePath(vault.path, date, DEFAULT_CONFIG);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, "");
+    const status = await inboxStatus(vault.path, date, DEFAULT_CONFIG, { includeBody: true });
+    expect(status.dailyNoteBody).toEqual({ content: "", truncated: false, totalBytes: 0 });
+  });
+
+  it("returns previousDailyNoteBody when includePreviousBody=true and prior note exists", async () => {
+    const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
+    mkdirSync(daily, { recursive: true });
+    writeFileSync(path.join(daily, "2026-05-08.md"), "prior note body");
+    const status = await inboxStatus(vault.path, new Date(2026, 4, 10), DEFAULT_CONFIG, {
+      includePreviousBody: true,
+    });
+    expect(status.previousDailyNotePath).toBe("0-Inbox/Daily/2026-05-08.md");
+    expect(status.previousDailyNoteBody?.content).toBe("prior note body");
+    expect(status.previousDailyNoteBody?.truncated).toBe(false);
+  });
+
+  it("omits previousDailyNoteBody when includePreviousBody=true but no prior note exists", async () => {
+    const status = await inboxStatus(vault.path, new Date(2026, 4, 10), DEFAULT_CONFIG, {
+      includePreviousBody: true,
+    });
+    expect(status.previousDailyNotePath).toBeUndefined();
+    expect(status.previousDailyNoteBody).toBeUndefined();
+  });
+
+  it("returns both bodies when both options are true", async () => {
+    const date = new Date(2026, 4, 10);
+    await ensureDailyNote(vault.path, date, DEFAULT_CONFIG);
+    const daily = path.join(vault.path, DEFAULT_CONFIG.dailyNotesFolder);
+    writeFileSync(path.join(daily, "2026-05-08.md"), "prior");
+    const status = await inboxStatus(vault.path, date, DEFAULT_CONFIG, {
+      includeBody: true,
+      includePreviousBody: true,
+    });
+    expect(status.dailyNoteBody).toBeDefined();
+    expect(status.previousDailyNoteBody?.content).toBe("prior");
+  });
+
+  it("truncates dailyNoteBody when the file exceeds BODY_MAX_BYTES", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    const file = dailyNotePath(vault.path, date, DEFAULT_CONFIG);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, "x".repeat(200 * 1024)); // 200 KB
+    const status = await inboxStatus(vault.path, date, DEFAULT_CONFIG, { includeBody: true });
+    expect(status.dailyNoteBody?.truncated).toBe(true);
+    expect(status.dailyNoteBody?.totalBytes).toBe(200 * 1024);
+    expect(status.dailyNoteBody?.content.length).toBe(BODY_MAX_BYTES);
+  });
+
+  it("freshness invariant: successive calls reflect on-disk mutations", async () => {
+    const date = new Date("2026-05-10T12:00:00Z");
+    const file = await ensureDailyNote(vault.path, date, DEFAULT_CONFIG);
+    const first = await inboxStatus(vault.path, date, DEFAULT_CONFIG, { includeBody: true });
+    writeFileSync(file, "MUTATED CONTENT");
+    const second = await inboxStatus(vault.path, date, DEFAULT_CONFIG, { includeBody: true });
+    expect(first.dailyNoteBody?.content).not.toBe(second.dailyNoteBody?.content);
+    expect(second.dailyNoteBody?.content).toBe("MUTATED CONTENT");
+  });
 });
 
 describe("prependToSectionList", () => {
