@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
  * SPDX-License-Identifier: MIT
  */
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { findProjectTool } from "./tools/find-project.js";
 import { nextActionTool } from "./tools/next-action.js";
 import { captureTool } from "./tools/capture.js";
@@ -27,7 +27,11 @@ export function buildServer(vaultPath: string, config: VaultConfig): BuiltServer
   for (const tool of tools) {
     const handler: ToolHandler = (args) => tool.handler(args as never, vaultPath, config);
     handlerMap.set(tool.name, handler);
-    mcp.tool(tool.name, tool.description, tool.inputSchema, async (args: unknown) => handler(args));
+    mcp.registerTool(
+      tool.name,
+      { description: tool.description, inputSchema: tool.inputSchema },
+      async (args: unknown) => handler(args),
+    );
   }
 
   return {

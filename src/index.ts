@@ -3,7 +3,7 @@
  * SPDX-FileCopyrightText: (c) 2026 Robert Tucker
  * SPDX-License-Identifier: MIT
  */
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { buildServer } from "./server.js";
 import { resolveVaultPath } from "./vault/path.js";
 import { loadVaultConfig } from "./vault/config.js";
