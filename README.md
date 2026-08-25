@@ -12,11 +12,11 @@ Five tools, MIT-licensed, published on npm as `@robertwtucker/para-vault-mcp`. S
 
 | Name                  | Purpose                                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |
-| `find_project`        | List PARA projects in `1-Projects/` with optional filtering, sorting, and a limit.                     |
+| `find_project`        | List PARA projects in `1-Projects/` with optional filtering, sorting, and a limit. Returns `{projects, parseFailures}` — the second field is an unfilterable census of projects whose frontmatter didn't parse, so a corrupted project can't disappear from filtered views. |
 | `next_action`         | Return the next action for a project (frontmatter `next-action`, falling back to top unchecked task).  |
 | `capture`             | Append an idea, URL, or note to today's daily-note **Captures** section.                               |
 | `log_work`            | Append a work-log entry (something done or worked on) to today's daily-note **Work Log** section.      |
-| `daily_review_status` | Report the state of today's daily-review surface: today's note existence, inbox items and count, the prior daily note's path for reconciliation, and `## End-of-Day Check` checkboxes. Opt in to `include_body: true` and/or `include_previous_body: true` to receive the on-disk daily-note body inline (fresh read, no caching, 128 KB cap with explicit truncation reporting). |
+| `daily_review_status` | Report the state of today's daily-review surface: today's note existence, inbox items and count, the prior daily note's path for reconciliation, and `## End-of-Day Check` checkboxes. A present-but-unreadable daily note reports `dailyNoteExists: true` plus `dailyNoteError` rather than reporting as missing. Opt in to `include_body: true` and/or `include_previous_body: true` to receive the on-disk daily-note body inline (fresh read, no caching, 128 KB cap with explicit truncation reporting). |
 
 All write tools auto-prefix the standard markdown list bullet (`- `) and are idempotent against double-prefixing.
 
