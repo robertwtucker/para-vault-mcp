@@ -292,6 +292,44 @@ describe("inboxStatus", () => {
     expect(first.dailyNoteBody?.content).not.toBe(second.dailyNoteBody?.content);
     expect(second.dailyNoteBody?.content).toBe("MUTATED CONTENT");
   });
+
+  it("reports a present-but-unreadable daily note as existing, with the error", async () => {
+    const date = new Date(2026, 7, 25);
+    // A directory at the daily-note path yields EISDIR on read — a non-ENOENT
+    // failure that needs no privilege manipulation, unlike chmod 000 which is
+    // a no-op for root and would let this test pass for the wrong reason.
+    mkdirSync(path.join(vault.path, "0-Inbox", "Daily", "2026-08-25.md"), { recursive: true });
+
+    const status = await inboxStatus(vault.path, date, DEFAULT_CONFIG);
+
+    expect(status.dailyNoteExists).toBe(true);
+    expect(status.dailyNoteError).toMatch(/EISDIR/);
+    expect(status.endOfDayChecks).toBeUndefined();
+  });
+
+  it("surfaces the read failure in the body envelope when include_body is set", async () => {
+    const date = new Date(2026, 7, 25);
+    mkdirSync(path.join(vault.path, "0-Inbox", "Daily", "2026-08-25.md"), { recursive: true });
+
+    const status = await inboxStatus(vault.path, date, DEFAULT_CONFIG, { includeBody: true });
+
+    expect(status.dailyNoteBody).toEqual({
+      content: "",
+      truncated: false,
+      totalBytes: 0,
+      error: expect.stringMatching(/EISDIR/),
+    });
+  });
+
+  it("still reports a genuinely absent daily note as missing", async () => {
+    const status = await inboxStatus(vault.path, new Date(2026, 7, 25), DEFAULT_CONFIG, {
+      includeBody: true,
+    });
+
+    expect(status.dailyNoteExists).toBe(false);
+    expect(status.dailyNoteError).toBeUndefined();
+    expect(status.dailyNoteBody).toBeUndefined();
+  });
 });
 
 describe("prependToSectionList", () => {
