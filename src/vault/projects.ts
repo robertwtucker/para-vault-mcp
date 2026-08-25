@@ -14,6 +14,18 @@ export interface DateError {
   value: string;
 }
 
+export interface ParseFailure {
+  name: string;
+  path: string;
+  error?: string;
+  dateErrors?: DateError[];
+}
+
+export interface FindProjectsResult {
+  projects: ProjectSummary[];
+  parseFailures: ParseFailure[];
+}
+
 export interface ProjectSummary {
   name: string;
   path: string;
@@ -53,7 +65,7 @@ export async function findProjects(
   vaultPath: string,
   config: VaultConfig,
   options: FindProjectsOptions = {},
-): Promise<ProjectSummary[]> {
+): Promise<FindProjectsResult> {
   const projectsRoot = path.join(vaultPath, config.projectsFolder);
   const dirs = await globby("*", { cwd: projectsRoot, onlyDirectories: true, dot: false });
   const now = options.now ?? new Date();
@@ -61,6 +73,24 @@ export async function findProjects(
   const summaries = await Promise.all(
     dirs.map(async (dir) => loadProject(projectsRoot, dir, now)),
   );
+
+  // Built from `summaries`, never from `filtered`. Every frontmatter-derived
+  // predicate below is written as "exclude unless the value proves inclusion",
+  // and a parse failure proves nothing — so the rows that most need to be seen
+  // are exactly the rows filtering drops. The census is the channel that
+  // survives, riding the filesystem-derived name/path the parse can't corrupt.
+  const parseFailures: ParseFailure[] = summaries
+    .filter((p) => p.frontmatterError !== undefined || p.dateErrors !== undefined)
+    .map((p) => ({
+      name: p.name,
+      path: p.path,
+      ...(p.frontmatterError !== undefined ? { error: p.frontmatterError } : {}),
+      ...(p.dateErrors !== undefined ? { dateErrors: p.dateErrors } : {}),
+    }))
+    // Sorted by name so the census has a deterministic order, matching the
+    // name-tie comparison sortProjects uses below — raw globby directory
+    // order isn't guaranteed stable across platforms.
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const statusFilter = options.status?.toLowerCase();
   const areaFilter = options.area ? normalizeArea(options.area) : undefined;
@@ -78,7 +108,10 @@ export async function findProjects(
   });
 
   const sorted = sortProjects(filtered, options.sort ?? "name", options.order ?? "asc");
-  return options.limit !== undefined ? sorted.slice(0, options.limit) : sorted;
+  return {
+    projects: options.limit !== undefined ? sorted.slice(0, options.limit) : sorted,
+    parseFailures,
+  };
 }
 
 function sortProjects(
