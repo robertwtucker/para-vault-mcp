@@ -12,7 +12,7 @@ Five tools, MIT-licensed, published on npm as `@robertwtucker/para-vault-mcp`. S
 
 | Name                  | Purpose                                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |
-| `find_project`        | List PARA projects in `1-Projects/` with optional filtering, sorting, and a limit. Returns `{projects, parseFailures}` — the second field is an unfilterable census of projects whose frontmatter didn't parse, so a corrupted project can't disappear from filtered views. |
+| `find_project`        | List PARA projects in `1-Projects/` with optional filtering, sorting, and a limit. Returns `{projects, parseFailures}` — the second field is an unfilterable census of projects whose frontmatter didn't parse, so a project with unparseable frontmatter can't disappear from filtered views. |
 | `next_action`         | Return the next action for a project (frontmatter `next-action`, falling back to top unchecked task).  |
 | `capture`             | Append an idea, URL, or note to today's daily-note **Captures** section.                               |
 | `log_work`            | Append a work-log entry (something done or worked on) to today's daily-note **Work Log** section.      |
@@ -120,7 +120,7 @@ tags: [...]
 ---
 ```
 
-`find_project` returns every project in `1-Projects/` by default — vocabulary on `status` is yours, not the tool's. Pass `status: "active"` (or whatever you use) to filter. When `next-action` is absent from frontmatter, `next_action` falls back to the first unchecked `- [ ] ...` task in the body. Date fields are read whether written quoted (`updated: "2026-06-10"`), as bare YAML dates (`updated: 2026-06-10`), or as full timestamps with offsets (`updated: 2026-06-10T20:00:00-08:00`) — `find_project` reports the user's calendar date rather than UTC-slicing the parsed instant. Frontmatter date values that don't parse (e.g. `2026-13-45`) surface in the per-project `dateErrors` array on the response so the caller can flag them, rather than silently rolling over to a different date via JavaScript's `Date` constructor.
+`find_project` returns every project in `1-Projects/` by default — vocabulary on `status` is yours, not the tool's. Pass `status: "active"` (or whatever you use) to filter. When `next-action` is absent from frontmatter, `next_action` falls back to the first unchecked `- [ ] ...` task in the body. Date fields are read whether written quoted (`updated: "2026-06-10"`), as bare YAML dates (`updated: 2026-06-10`), or as full timestamps with offsets (`updated: 2026-06-10T20:00:00-08:00`) — `find_project` reports the user's calendar date rather than UTC-slicing the parsed instant. Frontmatter date values that don't parse (e.g. `2026-13-45`) surface in the per-project `dateErrors` array on the response so the caller can flag them, rather than silently rolling over to a different date via JavaScript's `Date` constructor. Both whole-file frontmatter parse failures and individual date-value failures also surface in the top-level `parseFailures` census, which is returned regardless of active filters — the per-project fields ride on rows the filters can drop, so the census is the channel that survives.
 
 ### Customizing conventions
 
