@@ -8,6 +8,7 @@ import { nextActionTool } from "./tools/next-action.js";
 import { captureTool } from "./tools/capture.js";
 import { logWorkTool } from "./tools/log-work.js";
 import { dailyReviewStatusTool } from "./tools/daily-review-status.js";
+import { z } from "zod";
 import type { VaultConfig } from "./vault/config.js";
 
 type ToolHandler = (args: unknown) => Promise<{ content: { type: "text"; text: string }[] }>;
@@ -29,7 +30,7 @@ export function buildServer(vaultPath: string, config: VaultConfig): BuiltServer
     handlerMap.set(tool.name, handler);
     mcp.registerTool(
       tool.name,
-      { description: tool.description, inputSchema: tool.inputSchema },
+      { description: tool.description, inputSchema: z.object(tool.inputSchema) },
       async (args: unknown) => handler(args),
     );
   }
