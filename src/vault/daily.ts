@@ -251,8 +251,30 @@ export interface InboxStatus {
   inboxItems: InboxItem[];
   previousDailyNotePath?: string;
   endOfDayChecks?: { label: string; checked: boolean }[];
+  dailyNoteError?: string;
   dailyNoteBody?: BodyEnvelope;
   previousDailyNoteBody?: BodyEnvelope;
+}
+
+type DailyNoteRead =
+  | { kind: "ok"; content: string }
+  | { kind: "missing" }
+  | { kind: "error"; message: string };
+
+/**
+ * Reads today's daily note, keeping "the file isn't there" distinct from "the
+ * file is there and we couldn't read it." The previous single
+ * `.catch(() => undefined)` collapsed both into missing, so a permissions or
+ * IO failure was reported as an absent note — a record removing itself from
+ * the view rather than raising its hand.
+ */
+async function readDailyNote(file: string): Promise<DailyNoteRead> {
+  try {
+    return { kind: "ok", content: await readFile(file, "utf8") };
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return { kind: "missing" };
+    return { kind: "error", message: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export async function inboxStatus(
@@ -262,17 +284,24 @@ export async function inboxStatus(
   options?: { includeBody?: boolean; includePreviousBody?: boolean },
 ): Promise<InboxStatus> {
   const file = dailyNotePath(vaultPath, date, config);
-  const [content, inboxItems, previousDailyNotePath] = await Promise.all([
-    readFile(file, "utf8").catch(() => undefined),
+  const [read, inboxItems, previousDailyNotePath] = await Promise.all([
+    readDailyNote(file),
     listInboxItems(vaultPath, config),
     findPreviousDailyNote(vaultPath, date, config),
   ]);
 
   const includeBody = options?.includeBody === true;
   const includePreviousBody = options?.includePreviousBody === true;
+  const content = read.kind === "ok" ? read.content : undefined;
 
-  const dailyNoteBody =
-    includeBody && content !== undefined ? buildBodyEnvelope(content, BODY_MAX_BYTES) : undefined;
+  let dailyNoteBody: BodyEnvelope | undefined;
+  if (includeBody) {
+    if (read.kind === "ok") {
+      dailyNoteBody = buildBodyEnvelope(read.content, BODY_MAX_BYTES);
+    } else if (read.kind === "error") {
+      dailyNoteBody = { content: "", truncated: false, totalBytes: 0, error: read.message };
+    }
+  }
 
   const previousDailyNoteBody =
     includePreviousBody && previousDailyNotePath !== undefined
@@ -280,12 +309,13 @@ export async function inboxStatus(
       : undefined;
 
   return {
-    dailyNoteExists: content !== undefined,
+    dailyNoteExists: read.kind !== "missing",
     inboxItemCount: inboxItems.length,
     inboxItems,
     previousDailyNotePath,
     endOfDayChecks:
       content !== undefined ? extractEndOfDayChecks(content, config.endOfDayCheckSection) : undefined,
+    dailyNoteError: read.kind === "error" ? read.message : undefined,
     dailyNoteBody,
     previousDailyNoteBody,
   };
