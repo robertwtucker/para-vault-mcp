@@ -11,13 +11,13 @@ describe("findProjectTool", () => {
   it("returns all projects as a JSON-text content block when no query", async () => {
     const result = await findProjectTool.handler({}, FIXTURE, DEFAULT_CONFIG);
     expect(result.content[0]?.type).toBe("text");
-    const projects = JSON.parse(result.content[0]!.text);
+    const { projects } = JSON.parse(result.content[0]!.text);
     expect(projects).toHaveLength(3);
   });
 
   it("returns filtered projects when query is provided", async () => {
     const result = await findProjectTool.handler({ query: "Sample" }, FIXTURE, DEFAULT_CONFIG);
-    const projects = JSON.parse(result.content[0]!.text);
+    const { projects } = JSON.parse(result.content[0]!.text);
     expect(projects.map((p: { name: string }) => p.name).sort()).toEqual([
       "Sample Active",
       "Sample Waiting",
@@ -35,7 +35,7 @@ describe("findProjectTool", () => {
       FIXTURE,
       DEFAULT_CONFIG,
     );
-    const projects = JSON.parse(result.content[0]!.text);
+    const { projects } = JSON.parse(result.content[0]!.text);
     expect(projects.map((p: { name: string }) => p.name)).toEqual(["Sample Active"]);
   });
 
@@ -45,7 +45,7 @@ describe("findProjectTool", () => {
       FIXTURE,
       DEFAULT_CONFIG,
     );
-    const projects = JSON.parse(result.content[0]!.text);
+    const { projects } = JSON.parse(result.content[0]!.text);
     expect(projects.map((p: { name: string }) => p.name)).toEqual(["Sample Waiting"]);
   });
 
@@ -55,7 +55,29 @@ describe("findProjectTool", () => {
       FIXTURE,
       DEFAULT_CONFIG,
     );
-    const projects = JSON.parse(result.content[0]!.text);
+    const { projects } = JSON.parse(result.content[0]!.text);
     expect(projects[0].name).toBe("Sample Active");
+  });
+
+  it("returns an envelope with projects and a parseFailures census", async () => {
+    const result = await findProjectTool.handler({}, FIXTURE, DEFAULT_CONFIG);
+    const payload = JSON.parse(result.content[0]!.text);
+
+    expect(Array.isArray(payload)).toBe(false);
+    expect(Array.isArray(payload.projects)).toBe(true);
+    expect(payload.parseFailures).toEqual([]);
+  });
+
+  it("still strips internal underscore-prefixed fields inside the envelope", async () => {
+    const result = await findProjectTool.handler({}, FIXTURE, DEFAULT_CONFIG);
+    const payload = JSON.parse(result.content[0]!.text);
+
+    for (const p of payload.projects) {
+      expect(Object.keys(p).some((k) => k.startsWith("_"))).toBe(false);
+    }
+  });
+
+  it("documents the parseFailures channel in the tool description", () => {
+    expect(findProjectTool.description).toMatch(/parseFailures/);
   });
 });

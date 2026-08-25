@@ -45,7 +45,7 @@ describe("end-to-end with non-default config", () => {
     const config = await loadVaultConfig(vault.path);
     const server = buildServer(vault.path, config);
     const result = await server.callTool("find_project", {});
-    const parsed = JSON.parse(result.content[0]!.text);
-    expect(parsed.map((p: { name: string }) => p.name)).toContain("Sample");
+    const { projects } = JSON.parse(result.content[0]!.text);
+    expect(projects.map((p: { name: string }) => p.name)).toContain("Sample");
   });
 });

@@ -122,9 +122,10 @@ describe("MCP server over the real wire protocol", () => {
     });
     const payload = JSON.parse(res.result?.content[0].text);
 
-    expect(Array.isArray(payload)).toBe(true);
-    expect(payload.length).toBeGreaterThan(0);
-    expect(payload.every((p: { name: string }) => p.name.includes("Sample"))).toBe(true);
+    expect(Array.isArray(payload.projects)).toBe(true);
+    expect(payload.projects.length).toBeGreaterThan(0);
+    expect(payload.projects.every((p: { name: string }) => p.name.includes("Sample"))).toBe(true);
+    expect(payload.parseFailures).toEqual([]);
     await close();
   });
 });
