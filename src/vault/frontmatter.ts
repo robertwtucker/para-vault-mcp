@@ -34,15 +34,18 @@ export function parseFrontmatter(raw: string): ParsedNote {
   }
 }
 
-// @11ty/gray-matter exposes a `matter` property carrying the raw YAML block,
-// but it's defined as non-enumerable, and on a cache hit the library returns
-// it via `Object.assign({}, cached)`, which drops non-enumerable properties —
-// so `parsed.matter` would be undefined there. parseFrontmatter opts out of
-// that cache above (`matter(raw, {})`), so the cache-hit path is currently
-// unreachable from here — but the workaround is kept belt-and-braces: it's
-// free, and the defect is live again the moment that opt-out is ever removed.
-// Slicing the block from the raw input directly sidesteps the bug regardless
-// of caching.
+// This is how `rawFrontmatter` is computed — not a defensive fallback for a
+// path parseFrontmatter no longer takes. @11ty/gray-matter exposes a `matter`
+// property carrying the raw YAML block, but it's defined as non-enumerable,
+// and on a cache hit the library returns it via `Object.assign({}, cached)`,
+// which drops non-enumerable properties — so `parsed.matter` would be
+// undefined there. parseFrontmatter opts out of that cache above
+// (`matter(raw, {})`), so the cache-hit path is currently unreachable from
+// here — but the workaround is kept belt-and-braces: it's free, and the
+// defect is live again the moment that opt-out is ever removed. Slicing the
+// block from the raw input directly sidesteps the bug regardless of caching:
+// reading `parsed.matter` here would be wrong whether or not the cache-hit
+// path is reachable, since this function is `rawFrontmatter`'s only source.
 function extractRawFrontmatter(raw: string): string {
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   return m ? m[1]! : "";
