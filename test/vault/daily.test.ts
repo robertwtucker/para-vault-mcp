@@ -403,9 +403,11 @@ describe("buildBodyEnvelope", () => {
     const s = "a".repeat(128);
     const env = buildBodyEnvelope(s, 128);
     expect(env).toEqual({ content: s, truncated: true, totalBytes: 128 });
-    // At exact limit, we consider it truncated: consumer can't distinguish
-    // "exactly the limit" from "one byte more, cut at the limit". Being
-    // loud is the v0.4 discipline; being conservative here matches that.
+    // At exact limit we report truncated. The reason is not ambiguity — both
+    // paths know the true size (Buffer.byteLength here, stat in
+    // readBodyBounded). It's that readBodyBounded's oversized branch feeds this
+    // function a buffer of exactly maxBytes and relies on the strict `<` to
+    // reach the UTF-8 backoff.
   });
 
   it("truncates when over the limit", () => {
@@ -491,5 +493,17 @@ describe("readBodyBounded", () => {
     expect(env!.truncated).toBe(true);
     expect(env!.content.length).toBe(BODY_MAX_BYTES - 1);
     expect(Buffer.byteLength(env!.content, "utf8")).toBe(BODY_MAX_BYTES - 1);
+  });
+
+  it("flags an exactly-at-limit file the same way buildBodyEnvelope does", async () => {
+    const file = path.join(vault.path, "exact.md");
+    const exact = "a".repeat(128);
+    writeFileSync(file, exact);
+
+    const fromDisk = await readBodyBounded(file, 128);
+    const fromMemory = buildBodyEnvelope(exact, 128);
+
+    expect(fromDisk!.truncated).toBe(fromMemory.truncated);
+    expect(fromDisk!.totalBytes).toBe(fromMemory.totalBytes);
   });
 });

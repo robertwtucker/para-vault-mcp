@@ -21,6 +21,10 @@ export function buildBodyEnvelope(content: string, maxBytes: number): BodyEnvelo
   if (totalBytes < maxBytes) {
     return { content, truncated: false, totalBytes };
   }
+  // Strict `<` above is load-bearing, not stylistic. readBodyBounded's oversized
+  // branch hands this function a buffer of exactly maxBytes, and only the strict
+  // comparison routes that input into the backoff below. Under `<=` it would be
+  // returned as-is with a possibly-split multi-byte code point at the tail.
   // Encode, cut, back off to last complete UTF-8 code point boundary.
   const encoded = Buffer.from(content, "utf8");
   let cutAt = Math.min(maxBytes, encoded.length);
@@ -55,7 +59,10 @@ export async function readBodyBounded(
   } catch {
     return undefined;
   }
-  if (size <= maxBytes) {
+  // Strict `<`, matching buildBodyEnvelope. An exactly-at-limit file goes down
+  // the bounded-read branch below, whose UTF-8 backoff depends on that same
+  // strict comparison — see the comment there.
+  if (size < maxBytes) {
     try {
       const content = await readFile(filePath, "utf8");
       return { content, truncated: false, totalBytes: size };
