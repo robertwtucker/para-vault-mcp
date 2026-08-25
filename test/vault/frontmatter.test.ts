@@ -42,15 +42,31 @@ describe("parseFrontmatter", () => {
     expect(result.rawFrontmatter).toBe("");
   });
 
-  it("rawFrontmatter is stable across repeated parses of the same content", () => {
-    // @11ty/gray-matter caches the parsed object by content string and returns
-    // Object.assign({}, cached) on hit, which strips its own non-enumerable
-    // `matter` property. parseFrontmatter must not regress to reading
-    // parsed.matter directly — repeated parses must yield identical rawFrontmatter.
+  it("rawFrontmatter is the delimited YAML slice, not gray-matter's own `matter` property", () => {
+    // Regression guard for a real @11ty/gray-matter defect, independent of
+    // parseFrontmatter's cache opt-out: gray-matter's own `file.matter`
+    // property carries a leading newline that the delimited block itself does
+    // not ("\nupdated: 2026-05-01" vs "updated: 2026-05-01"). If
+    // parseFrontmatter ever regressed to reading `parsed.matter` directly
+    // instead of slicing the raw input, this exact-value assertion would catch
+    // the stray leading newline — regardless of whether gray-matter's cache is
+    // in play, so it stays meaningful even after the cache opt-out.
     const input = `---\nupdated: 2026-05-01\n---\n\nBody`;
-    const first = parseFrontmatter(input);
-    const second = parseFrontmatter(input);
-    expect(second.rawFrontmatter).toBe(first.rawFrontmatter);
-    expect(second.rawFrontmatter).toContain("updated: 2026-05-01");
+    const result = parseFrontmatter(input);
+    expect(result.rawFrontmatter).toBe("updated: 2026-05-01");
+  });
+
+  it("reports the error on every parse of the same invalid YAML, not just the first", () => {
+    // @11ty/gray-matter caches its pre-parse `file` object by content string
+    // *before* parsing runs. When parsing throws, that empty, error-free object
+    // is left in the cache, so a second parse of byte-identical invalid content
+    // would silently return `{ data: {} }` with no error instead of re-throwing.
+    // In a long-lived process this would report a corrupt file's parse failure
+    // once and then hide it forever after.
+    const input = `---\n[unclosed\n---\n\nbody`;
+    for (let i = 0; i < 3; i++) {
+      const result = parseFrontmatter(input);
+      expect(result.error).toBeDefined();
+    }
   });
 });
