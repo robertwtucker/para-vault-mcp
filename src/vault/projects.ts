@@ -40,6 +40,7 @@ export interface ProjectSummary {
   daysSinceUpdate?: number;
   tags: string[];
   frontmatterError?: string;
+  readError?: string;
   dateErrors?: DateError[];
   _updatedDate?: Date;
   _dueDate?: Date;
@@ -80,11 +81,19 @@ export async function findProjects(
   // are exactly the rows filtering drops. The census is the channel that
   // survives, riding the filesystem-derived name/path the parse can't corrupt.
   const parseFailures: ParseFailure[] = summaries
-    .filter((p) => p.frontmatterError !== undefined || p.dateErrors !== undefined)
+    .filter(
+      (p) =>
+        p.frontmatterError !== undefined || p.readError !== undefined || p.dateErrors !== undefined,
+    )
     .map((p) => ({
       name: p.name,
       path: p.path,
-      ...(p.frontmatterError !== undefined ? { error: p.frontmatterError } : {}),
+      // readError and frontmatterError are mutually exclusive by construction:
+      // loadProject returns on readError before ever attempting to parse, so
+      // frontmatterError is only reachable on the read-succeeded path.
+      ...(p.readError !== undefined || p.frontmatterError !== undefined
+        ? { error: p.readError ?? p.frontmatterError }
+        : {}),
       ...(p.dateErrors !== undefined ? { dateErrors: p.dateErrors } : {}),
     }))
     // Sorted by name so the census has a deterministic order, matching the
@@ -164,8 +173,22 @@ async function loadProject(projectsRoot: string, dir: string, now: Date): Promis
   let raw: string | undefined;
   try {
     raw = await readFile(projectFile, "utf8");
-  } catch {
-    return { name: dir, path: projectPath, hasProjectFile: false, tags: [] };
+  } catch (e) {
+    // Keeps "there is no _project.md here" distinct from "there is one and
+    // we couldn't read it" — the same discrimination readDailyNote applies
+    // in src/vault/daily.ts. A bare catch previously collapsed every read
+    // failure (permissions, IO error, EISDIR) into "missing", so a corrupted
+    // project silently dropped out of every frontmatter-derived filter.
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") {
+      return { name: dir, path: projectPath, hasProjectFile: false, tags: [] };
+    }
+    return {
+      name: dir,
+      path: projectPath,
+      hasProjectFile: true,
+      tags: [],
+      readError: e instanceof Error ? e.message : String(e),
+    };
   }
   const { data, error, rawFrontmatter } = parseFrontmatter(raw);
   const dateErrors: DateError[] = [];

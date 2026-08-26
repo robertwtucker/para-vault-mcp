@@ -494,5 +494,53 @@ updated: 2026-08-01
         rmSync(tmp, { recursive: true, force: true });
       }
     });
+
+    it("reports an unreadable _project.md as a read failure, not an absent one", async () => {
+      const tmp = mkdtempSync(path.join(tmpdir(), "vault-unreadable-"));
+      try {
+        const dir = path.join(tmp, "1-Projects", "Unreadable");
+        mkdirSync(dir, { recursive: true });
+        // A directory where the file is expected forces readFile to reject
+        // with EISDIR — a real, non-ENOENT failure with no privilege
+        // dependency (unlike chmod 000, which is a no-op for root).
+        mkdirSync(path.join(dir, "_project.md"), { recursive: true });
+
+        const { projects, parseFailures } = await findProjects(tmp, DEFAULT_CONFIG);
+        const target = projects.find((p) => p.name === "Unreadable");
+        expect(target).toBeDefined();
+        expect(target!.hasProjectFile).toBe(true);
+        expect(target!.readError).toMatch(/EISDIR/);
+
+        expect(parseFailures.map((f) => f.name)).toEqual(["Unreadable"]);
+        expect(parseFailures[0]!.error).toMatch(/EISDIR/);
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("keeps an unreadable project in the census under a filter that excludes it from projects", async () => {
+      const tmp = mkdtempSync(path.join(tmpdir(), "vault-unreadable-filtered-"));
+      try {
+        const dir = path.join(tmp, "1-Projects", "Unreadable");
+        mkdirSync(dir, { recursive: true });
+        mkdirSync(path.join(dir, "_project.md"), { recursive: true });
+
+        const { projects, parseFailures } = await findProjects(tmp, DEFAULT_CONFIG, {
+          status: "active",
+        });
+        expect(projects.map((p) => p.name)).toEqual([]);
+        expect(parseFailures.map((f) => f.name)).toEqual(["Unreadable"]);
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it("still reports a genuinely absent _project.md as hasProjectFile=false with no readError", async () => {
+      const { projects, parseFailures } = await findProjects(FIXTURE, DEFAULT_CONFIG);
+      const bare = projects.find((p) => p.name === "Bare Project");
+      expect(bare?.hasProjectFile).toBe(false);
+      expect(bare?.readError).toBeUndefined();
+      expect(parseFailures.find((f) => f.name === "Bare Project")).toBeUndefined();
+    });
   });
 });

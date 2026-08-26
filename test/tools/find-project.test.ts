@@ -138,4 +138,33 @@ describe("findProjectTool", () => {
       rmSync(tempVault, { recursive: true, force: true });
     }
   });
+
+  it("carries an unreadable _project.md through to the wire as a read failure", async () => {
+    const tempVault = mkdtempSync(path.join(tmpdir(), "vault-unreadable-wire-"));
+    try {
+      const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);
+      mkdirSync(projectsDir, { recursive: true });
+
+      // A directory where the file is expected forces readFile to reject
+      // with EISDIR — a real, non-ENOENT failure with no privilege
+      // dependency (unlike chmod 000, which is a no-op for root).
+      const unreadableDir = path.join(projectsDir, "Unreadable");
+      mkdirSync(unreadableDir, { recursive: true });
+      mkdirSync(path.join(unreadableDir, "_project.md"), { recursive: true });
+
+      const result = await findProjectTool.handler({}, tempVault, DEFAULT_CONFIG);
+      const payload = JSON.parse(result.content[0]!.text);
+
+      const target = payload.projects.find((p: { name: string }) => p.name === "Unreadable");
+      expect(target).toBeDefined();
+      expect(target.hasProjectFile).toBe(true);
+      expect(target.readError).toMatch(/EISDIR/);
+
+      expect(payload.parseFailures).toHaveLength(1);
+      expect(payload.parseFailures[0].name).toBe("Unreadable");
+      expect(payload.parseFailures[0].error).toMatch(/EISDIR/);
+    } finally {
+      rmSync(tempVault, { recursive: true, force: true });
+    }
+  });
 });
