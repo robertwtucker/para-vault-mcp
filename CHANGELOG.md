@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.0] - 2026-08-25
+## [0.6.0] - 2026-08-26
 
 v0.6 makes absence a signal. v0.4 made the row honest — a swallowed parse error surfaced in `dateErrors` instead of masquerading as a confident `[]`. v0.5 made the content fresh — a pointer to a file became the file's live bytes. Both assume the record reaches the caller at all, and that assumption was wrong: a project whose `_project.md` won't parse is dropped by every frontmatter-derived filter in `find_project`, so the file most likely to be mangled by concurrent edits was exactly the one that could not raise its hand. `find_project` now returns an envelope carrying an unfilterable `parseFailures` census, and `daily_review_status` stops reporting a present-but-unreadable daily note as missing. SDK-registration and test-architecture hygiene ride along under Changed and Fixed without claiming the theme.
 
