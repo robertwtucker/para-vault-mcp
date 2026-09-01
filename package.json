@@ -35,7 +35,7 @@
     "url": "git+https://github.com/robertwtucker/para-vault-mcp.git"
   },
   "dependencies": {
-    "@11ty/gray-matter": "^2.1.0",
+    "@11ty/gray-matter": "^3.0.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "date-fns": "^4.4.0",
     "globby": "^16.2.0",
