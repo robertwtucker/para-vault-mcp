@@ -261,12 +261,18 @@ describe("findProjects", () => {
   });
 
   it("caches local-midnight Date when raw scalar misses the date-shape regex", async () => {
-    // Trigger the fallback `value instanceof Date` path. A YAML anchor on the
-    // date field produces a raw scalar like "&u 2026-05-01" — gray-matter still
-    // resolves it to a Date for `data.updated`, but rawScalarForKey returns the
-    // anchor text, which the date-shape regex rejects. Without the fix,
-    // _updatedDate would be js-yaml's UTC midnight Date, which compares
+    // Trigger readDateField's string fallback, the path taken when the raw
+    // scalar misses the date-shape regex. A YAML anchor on the date field
+    // produces a raw scalar like "&u 2026-05-01", which rawScalarForKey returns
+    // verbatim and the regex rejects, so the value reaches the fallback instead
+    // of the raw-scalar path every other date takes. The fallback must build a
+    // local-midnight Date via parseDateString: a UTC-midnight one would compare
     // inconsistently against the local-midnight Date built from a query string.
+    //
+    // Under js-yaml 4 this case arrived as a Date, handled by a `value
+    // instanceof Date` branch that has since been removed; js-yaml 5 resolves
+    // it to a string. The assertions below are unchanged, because both branches
+    // always routed through parseDateString (#60).
     const tempVault = mkdtempSync(path.join(tmpdir(), "vault-"));
     try {
       const projectsDir = path.join(tempVault, DEFAULT_CONFIG.projectsFolder);

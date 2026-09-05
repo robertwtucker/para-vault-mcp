@@ -242,17 +242,20 @@ function readDateField(
       return { display: datePart, date };
     }
   }
-  if (value instanceof Date) {
-    // js-yaml constructs bare YAML dates as UTC midnight. Re-route through
-    // parseDateString so the cached Date is local midnight, matching how
-    // updatedSinceDate is constructed on the query side. Without this, the
-    // updated_since filter compares UTC midnight against local midnight in
-    // non-UTC timezones, misclassifying boundary dates. Hits this branch on
-    // YAML anchors (`updated: &u 2026-05-01`) and other cases where the raw
-    // scalar doesn't match the date-shape regex.
-    const display = value.toISOString().slice(0, 10);
-    return { display, date: parseDateString(display) };
-  }
+  // Fallback for values whose raw scalar missed the date-shape regex above —
+  // YAML anchors (`updated: &u 2026-05-01`) most notably, where rawScalarForKey
+  // returns the anchor text. parseDateString builds a local-midnight Date,
+  // matching how updatedSinceDate is constructed on the query side; a UTC-midnight
+  // Date here would compare inconsistently in non-UTC timezones and misclassify
+  // updated_since boundary dates.
+  //
+  // A `value instanceof Date` branch used to sit ahead of this one, re-routing
+  // js-yaml's UTC-midnight Date objects through parseDateString for that reason.
+  // js-yaml 5 (via @11ty/gray-matter 3) dropped the timestamp type from its
+  // default schema, so date fields now always arrive as strings: a bare
+  // `2026-05-01` resolves to "2026-05-01", and an explicit `!!timestamp` tag
+  // fails to resolve at all. That made the branch unreachable, so it was removed
+  // rather than kept as a guard against a parser we no longer use (#60).
   if (typeof value === "string" && value.trim().length > 0) {
     const trimmed = value.trim();
     return { display: trimmed, date: parseDateString(trimmed) };
