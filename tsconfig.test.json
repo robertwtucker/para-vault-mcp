@@ -1,7 +1,11 @@
 {
   // Type-checks the whole repo, including the files tsconfig.json's build
-  // config deliberately leaves out. `pnpm typecheck` uses this config; only
-  // `pnpm build` uses the base one, which emits dist/ from src/ alone.
+  // config deliberately leaves out. `pnpm typecheck` runs BOTH configs: the
+  // base one first, then this one. Running this one alone is not sufficient --
+  // it relaxes rootDir to include test/, which suppresses the TS6059 the base
+  // config raises when a src/ file imports from outside src/. CI never runs
+  // `pnpm build`, so the base config's pass is the only place that error is
+  // caught before release.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
