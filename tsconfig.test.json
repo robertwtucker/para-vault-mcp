@@ -1,0 +1,20 @@
+{
+  // Type-checks the whole repo, including the files tsconfig.json's build
+  // config deliberately leaves out. `pnpm typecheck` uses this config; only
+  // `pnpm build` uses the base one, which emits dist/ from src/ alone.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The base config sets rootDir to src/, which would reject test/ and
+    // vitest.config.ts as living outside it.
+    "rootDir": "."
+  },
+  "include": ["src/**/*", "test/**/*", "vitest.config.ts"],
+  // Must be restated, not inherited. `extends` carries the base config's
+  // exclude — which lists "test" — and exclude filters whatever include
+  // matches, so inheriting it silently drops every test file back out of the
+  // program. That failure is quiet: tsc reports no error and exits 0 on an
+  // empty program, reproducing the exact green-but-checking-nothing bug this
+  // config exists to fix (#48).
+  "exclude": ["node_modules", "dist"]
+}

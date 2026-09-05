@@ -22,6 +22,8 @@ See the [Development section in README.md](./README.md#development) for clone, i
 
 The `prebuild` hook clears `dist/` before every `tsc` run, so the compiled output never drifts.
 
+Two TypeScript configs, deliberately: `tsconfig.json` is the build config and emits `dist/` from `src/` alone, while `tsconfig.test.json` extends it to type-check `test/` and `vitest.config.ts` as well. `pnpm run typecheck` uses the latter, so it checks everything; only `pnpm run build` uses the former.
+
 ### Testing against a non-default vault
 
 The test suite parameterizes the in-tree fixture vault at `test/fixtures/vault`. To exercise the configurable-conventions code path (#2 + #9), see `test/server.config.test.ts` for the pattern: write a temporary `_system/PARA-conventions.md` and call `loadVaultConfig` before constructing the server.
@@ -40,7 +42,7 @@ The test suite parameterizes the in-tree fixture vault at `test/fixtures/vault`.
 
 - **No comments by default.** Only write a comment when the _why_ is non-obvious (a hidden constraint, a subtle invariant, a workaround for a specific bug). Don't explain _what_ the code does — well-named identifiers do that.
 - **Naming.** Tools are named for _intent_ (`capture`, `log_work`), not data shape (`log_to_section({name})`). See [#7](https://github.com/robertwtucker/para-vault-mcp/issues/7) for the design principle.
-- **Strict TypeScript.** No `any`. `tsc --strict` catches things `tsx` / Vitest don't; please run `pnpm run typecheck` alongside `pnpm test`.
+- **Strict TypeScript.** No `any`. `tsc --strict` catches things `tsx` / Vitest don't — Vitest transpiles through esbuild, which strips types without checking them, so a type-incoherent test file still goes green. `pnpm run typecheck` covers `src/`, `test/`, and `vitest.config.ts` via `tsconfig.test.json`; please run it alongside `pnpm test`.
 
 ## Commit Style
 
